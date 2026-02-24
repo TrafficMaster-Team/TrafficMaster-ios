@@ -1,0 +1,45 @@
+# SwiftLint configuration for TrafficMaster
+
+included:
+  - TrafficMaster/TrafficMaster
+
+excluded:
+  - TrafficMaster/TrafficMaster/Assets.xcassets
+
+disabled_rules:
+  - trailing_whitespace   # Xcode иногда добавляет сам
+
+opt_in_rules:
+  - empty_count
+  - explicit_init
+  - closure_spacing
+  - first_where
+  - modifier_order
+  - sorted_imports
+  - unneeded_parentheses_in_closure_argument
+
+line_length:
+  warning: 140
+  error: 200
+
+type_body_length:
+  warning: 300
+  error: 500
+
+file_length:
+  warning: 500
+  error: 800
+
+function_body_length:
+  warning: 60
+  error: 100
+
+identifier_name:
+  min_length:
+    warning: 2
+  excluded:
+    - id
+    - x
+    - y
+
+reporter: "github-actions-logging"

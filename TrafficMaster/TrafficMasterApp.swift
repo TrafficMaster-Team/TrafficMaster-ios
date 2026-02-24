@@ -28,5 +28,6 @@ struct TrafficMasterApp: App {
             ContentView()
         }
         .modelContainer(sharedModelContainer)
+        .modelContainer(for: Question.self)
     }
 }
