@@ -1,10 +1,10 @@
 # SwiftLint configuration for TrafficMaster
 
 included:
-  - TrafficMaster/TrafficMaster
+  - TrafficMaster
 
 excluded:
-  - TrafficMaster/TrafficMaster/Assets.xcassets
+  - TrafficMaster/Assets.xcassets
 
 disabled_rules:
   - trailing_whitespace   # Xcode иногда добавляет сам
