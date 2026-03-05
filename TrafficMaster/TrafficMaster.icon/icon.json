@@ -40,6 +40,22 @@
       "layers" : [
         {
           "blend-mode" : "normal",
+          "fill" : {
+            "solid" : "extended-srgb:1.00000,0.80000,0.00000,1.00000"
+          },
+          "image-name" : "gr.svg",
+          "name" : "gr",
+          "opacity" : 0.8,
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              0,
+              674.704463239068
+            ]
+          }
+        },
+        {
+          "blend-mode" : "normal",
           "fill" : "none",
           "image-name" : "gr.svg",
           "name" : "gr",
