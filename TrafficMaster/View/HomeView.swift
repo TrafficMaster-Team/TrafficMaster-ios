@@ -81,6 +81,8 @@ struct HomeView: View {
         return sections
     }
     
+    @State private var currentStreak: Int = 0
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -90,8 +92,8 @@ struct HomeView: View {
                 
                 ScrollView {
                     VStack(spacing: 0) {
-                        // Верхний бар со статистикой (Огоньки, Монеты)
-                        TopGamificationBar()
+                        // Верхний бар со статистикой (Огоньки)
+                        TopGamificationBar(streak: currentStreak)
                             .padding(.top, 10)
                             .padding(.horizontal, 20)
                             .padding(.bottom, 20)
@@ -106,6 +108,9 @@ struct HomeView: View {
                     }
                 }
             }
+        }
+        .onAppear {
+            currentStreak = ProgressTracker.shared.calculateStreak()
         }
     }
 }
@@ -289,6 +294,8 @@ struct SquishyNodeButtonStyle: ButtonStyle {
 
 // MARK: - Top Gamification Bar
 struct TopGamificationBar: View {
+    let streak: Int
+    
     var body: some View {
         HStack {
             // Флаг или Иконка
@@ -302,26 +309,13 @@ struct TopGamificationBar: View {
             HStack(spacing: 4) {
                 Image(systemName: "flame.fill")
                     .foregroundColor(.orange)
-                Text("3")
+                Text("\(streak)")
                     .font(.system(.headline, design: .rounded, weight: .bold))
                     .foregroundColor(.orange)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(Color.orange.opacity(0.15))
-            .clipShape(Capsule())
-            
-            // Кристаллы/Монеты
-            HStack(spacing: 4) {
-                Image(systemName: "hexagon.fill")
-                    .foregroundColor(.blue)
-                Text("421")
-                    .font(.system(.headline, design: .rounded, weight: .bold))
-                    .foregroundColor(.blue)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Color.blue.opacity(0.15))
             .clipShape(Capsule())
         }
         .padding()

@@ -88,13 +88,15 @@ class QuestionViewModel {
     }
     
     private func processQuestionResultAndMoveToNext() {
-        guard let current = currentQuestion else { return }
+        guard currentQuestion != nil else { return }
         
         // Если вопрос отвечен правильно (SM-2 Quality >= 3), он "выучен" на сегодня.
         // Иначе (ошибка, Quality < 3), он остается в очереди и будет показан снова (уходит в конец).
         
         if isCorrect == true {
             learnedTodayCount += 1
+            ProgressTracker.shared.logCardStudied() // Логируем активность для стрика и хитмапа
+            
             // Удаляем из текущей сессии
             if !sessionQuestions.isEmpty {
                 sessionQuestions.removeFirst()

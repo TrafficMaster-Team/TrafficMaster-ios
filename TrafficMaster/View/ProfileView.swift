@@ -8,32 +8,55 @@
 import SwiftUI
 
 struct ProfileView: View {
+    @StateObject private var profileManager = ProfileManager.shared
+    
     @State private var dailyCardsLimit: Int = 20
     @State private var reminderEnabled: Bool = true
     @State private var reminderTime: Date = Calendar.current.date(from: DateComponents(hour: 20, minute: 0)) ?? Date()
     @State private var showResetAlert = false
+    @State private var showEditProfile = false
     
     var body: some View {
         NavigationStack {
             List {
                 // СЕКЦИЯ А: Учетная запись (Header)
                 Section {
-                    HStack(spacing: 16) {
-                        Image(systemName: "person.crop.circle.fill")
-                            .resizable()
-                            .frame(width: 60, height: 60)
-                            // Использование нового API для многоцветных SF Symbols
-                            .foregroundStyle(.gray, Color(UIColor.tertiarySystemFill))
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Студент")
-                                .font(.headline)
-                            Text("Готовность к экзамену: 68%")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                    Button(action: { showEditProfile = true }) {
+                        HStack(spacing: 16) {
+                            if let avatarData = profileManager.avatarData, let uiImage = UIImage(data: avatarData) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 60, height: 60)
+                                    .clipShape(Circle())
+                            } else {
+                                Image(systemName: "person.crop.circle.fill")
+                                    .resizable()
+                                    .frame(width: 60, height: 60)
+                                    .foregroundStyle(.gray, Color(UIColor.tertiarySystemFill))
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(profileManager.fullName)
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                if !profileManager.username.isEmpty {
+                                    Text("@\(profileManager.username)")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                } else {
+                                    Text("Редактировать профиль")
+                                        .font(.subheadline)
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundColor(.secondary)
                         }
+                        .padding(.vertical, 4)
                     }
-                    .padding(.vertical, 4)
                 }
                 
                 // СЕКЦИЯ Б: Монетизация (TrafficMaster Premium)
@@ -116,7 +139,9 @@ struct ProfileView: View {
                     }
                     
                     Button(action: {
-                        // Открыть почту или телеграм
+                        if let url = URL(string: "https://t.me/traffic_master_team") {
+                            UIApplication.shared.open(url)
+                        }
                     }) {
                         HStack {
                             SettingsIconView(icon: "envelope.fill", backgroundColor: .teal)
@@ -150,6 +175,9 @@ struct ProfileView: View {
             }
             .listStyle(.insetGrouped)
             .navigationTitle("Профиль")
+            .sheet(isPresented: $showEditProfile) {
+                EditProfileView()
+            }
         }
     }
 }

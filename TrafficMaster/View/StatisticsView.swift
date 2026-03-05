@@ -6,27 +6,74 @@
 //
 
 import SwiftUI
+import SwiftData
 import Charts
 
 struct StatisticsView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query private var allQuestions: [Question]
+    
     @State private var animateCharts = false
     
-    // Моковые данные для состава коллекции
-    let collectionData: [CardStatus] = [
-        CardStatus(type: "Новые", count: 420, color: .blue),
-        CardStatus(type: "Изучаемые", count: 150, color: .orange),
-        CardStatus(type: "Закрепленные", count: 330, color: .green)
-    ]
+    // Динамические вычисления для статистики
+    var collectionData: [CardStatus] {
+        let newCards = allQuestions.filter { $0.repetitions == 0 }.count
+        let learningCards = allQuestions.filter { $0.repetitions > 0 && $0.interval < 21 }.count
+        let masteredCards = allQuestions.filter { $0.repetitions > 0 && $0.interval >= 21 }.count
+        
+        return [
+            CardStatus(type: "Новые", count: newCards, color: .blue),
+            CardStatus(type: "Изучаемые", count: learningCards, color: .orange),
+            CardStatus(type: "Закрепленные", count: masteredCards, color: .green)
+        ]
+    }
     
-    // Моковые данные для Heatmap (последние 30 дней)
-    let heatmapData: [Int] = (0..<30).map { _ in Int.random(in: 0...5) }
+    var readinessPercentage: Int {
+        if allQuestions.isEmpty { return 0 }
+        let totalEasiness = allQuestions.reduce(0.0) { $0 + $1.easinessFactor }
+        // Максимальный нормальный easinessFactor обычно около 2.5-3.0. 
+        // Считаем 3.0 за 100% готовности для нормализации
+        let averageEasiness = totalEasiness / Double(allQuestions.count)
+        let percentage = (averageEasiness / 3.0) * 100
+        return min(Int(percentage), 100)
+    }
     
-    // Моковые данные для слабых тем
-    let weakTopics: [WeakTopic] = [
-        WeakTopic(name: "Перекрестки", errorRate: 45, icon: "arrow.triangle.merge"),
-        WeakTopic(name: "Сигналы регулировщика", errorRate: 38, icon: "figure.arms.open"),
-        WeakTopic(name: "Остановка и стоянка", errorRate: 25, icon: "parkingsign.circle")
-    ]
+    var forecastForTomorrow: Int {
+        let calendar = Calendar.current
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date())!
+        
+        return allQuestions.filter { 
+            $0.repetitions > 0 && calendar.isDate($0.nextReviewDate, inSameDayAs: tomorrow)
+        }.count
+    }
+    
+    // Реальные данные для Heatmap из ProgressTracker
+    var heatmapData: [Int] {
+        return ProgressTracker.shared.getLast30Days()
+    }
+    
+    // Динамические "Слабые темы" на основе easinessFactor
+    var weakTopics: [WeakTopic] {
+        let sectionsDict = Dictionary(grouping: allQuestions, by: { $0.chapterTitle ?? "Неизвестно" })
+        
+        var topicStats: [WeakTopic] = []
+        for (chapter, questions) in sectionsDict {
+            let answeredQuestions = questions.filter { $0.repetitions > 0 }
+            if answeredQuestions.isEmpty { continue }
+            
+            // Чем ниже easinessFactor, тем больше ошибок (EF начинается с 2.5, падает при ошибках)
+            let avgEF = answeredQuestions.reduce(0.0) { $0 + $1.easinessFactor } / Double(answeredQuestions.count)
+            
+            // Если EF < 2.0, значит тема слабая (ошибка > 50%)
+            let errorRate = max(0, min(100, Int((2.5 - avgEF) * 100)))
+            
+            if errorRate > 10 { // Показываем только если есть реальные трудности
+                topicStats.append(WeakTopic(name: chapter, errorRate: errorRate, icon: "exclamationmark.triangle"))
+            }
+        }
+        
+        return Array(topicStats.sorted(by: { $0.errorRate > $1.errorRate }).prefix(3))
+    }
 
     var body: some View {
         NavigationStack {
@@ -39,9 +86,12 @@ struct StatisticsView: View {
                         
                         // Блок А: Summary (Сводка)
                         HStack(spacing: 16) {
-                            SummaryCard(icon: "flame.fill", title: "Стрик", value: "14 дней", color: .orange)
-                            SummaryCard(icon: "brain.head.profile", title: "Готовность", value: "68%", color: .blue)
-                            SummaryCard(icon: "clock.badge.checkmark", title: "AI сэкономил", value: "3 ч", color: .green)
+                            let streak = ProgressTracker.shared.calculateStreak()
+                            let savedHours = ProgressTracker.shared.calculateSavedTimeHours()
+                            
+                            SummaryCard(icon: "flame.fill", title: "Стрик", value: "\(streak) дн.", color: .orange)
+                            SummaryCard(icon: "brain.head.profile", title: "Готовность", value: "\(readinessPercentage)%", color: .blue)
+                            SummaryCard(icon: "clock.badge.checkmark", title: "Сэкономлено", value: "\(savedHours) ч", color: .green)
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 10)
@@ -51,7 +101,7 @@ struct StatisticsView: View {
                             HStack {
                                 Image(systemName: "calendar.badge.clock")
                                     .foregroundColor(.blue)
-                                Text("Прогноз на завтра: 45 карточек")
+                                Text("Прогноз на завтра: \(forecastForTomorrow) карточек")
                                     .font(.system(.subheadline, design: .rounded, weight: .semibold))
                             }
                             .foregroundColor(.primary)
@@ -139,50 +189,57 @@ struct StatisticsView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                         .padding(.horizontal, 20)
                         
-                        // Блок В: Топ слабых тем
-                        VStack(alignment: .leading, spacing: 16) {
-                            HStack {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundColor(.red)
-                                Text("Топ слабых тем")
-                                    .font(.system(.title3, design: .rounded, weight: .bold))
-                            }
-                            
-                            VStack(spacing: 16) {
-                                ForEach(weakTopics) { topic in
-                                    HStack(spacing: 16) {
-                                        Image(systemName: topic.icon)
-                                            .font(.title3)
-                                            .foregroundColor(.red)
-                                            .frame(width: 30)
-                                        
-                                        VStack(alignment: .leading, spacing: 6) {
-                                            HStack {
-                                                Text(topic.name)
-                                                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                                                Spacer()
-                                                Text("\(topic.errorRate)% ошибок")
-                                                    .font(.system(.caption, design: .rounded, weight: .bold))
+                            // Блок В: Топ слабых тем
+                            VStack(alignment: .leading, spacing: 16) {
+                                HStack {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .foregroundColor(.red)
+                                    Text("Топ слабых тем")
+                                        .font(.system(.title3, design: .rounded, weight: .bold))
+                                }
+                                
+                                if weakTopics.isEmpty {
+                                    Text("У вас пока нет слабых тем. Так держать!")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                        .padding(.vertical, 10)
+                                } else {
+                                    VStack(spacing: 16) {
+                                        ForEach(weakTopics) { topic in
+                                            HStack(spacing: 16) {
+                                                Image(systemName: topic.icon)
+                                                    .font(.title3)
                                                     .foregroundColor(.red)
-                                            }
-                                            
-                                            GeometryReader { geometry in
-                                                ZStack(alignment: .leading) {
-                                                    Capsule()
-                                                        .fill(Color.gray.opacity(0.2))
-                                                        .frame(height: 6)
+                                                    .frame(width: 30)
+                                                
+                                                VStack(alignment: .leading, spacing: 6) {
+                                                    HStack {
+                                                        Text(topic.name)
+                                                            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                                                        Spacer()
+                                                        Text("\(topic.errorRate)% ошибок")
+                                                            .font(.system(.caption, design: .rounded, weight: .bold))
+                                                            .foregroundColor(.red)
+                                                    }
                                                     
-                                                    Capsule()
-                                                        .fill(Color.red)
-                                                        .frame(width: animateCharts ? geometry.size.width * CGFloat(topic.errorRate) / 100 : 0, height: 6)
+                                                    GeometryReader { geometry in
+                                                        ZStack(alignment: .leading) {
+                                                            Capsule()
+                                                                .fill(Color.gray.opacity(0.2))
+                                                                .frame(height: 6)
+                                                            
+                                                            Capsule()
+                                                                .fill(Color.red)
+                                                                .frame(width: animateCharts ? geometry.size.width * CGFloat(topic.errorRate) / 100 : 0, height: 6)
+                                                        }
+                                                    }
+                                                    .frame(height: 6)
                                                 }
                                             }
-                                            .frame(height: 6)
                                         }
                                     }
                                 }
                             }
-                        }
                         .padding(20)
                         .background(.ultraThinMaterial)
                         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))

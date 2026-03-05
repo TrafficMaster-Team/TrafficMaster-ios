@@ -24,11 +24,25 @@ struct TrafficMasterApp: App {
             let questionDescriptor = FetchDescriptor<Question>()
             
             let existingQuestions = try context.fetch(questionDescriptor)
-            if existingQuestions.isEmpty {
+            
+            // Проверяем версию базы данных через UserDefaults
+            let currentDBVersion = 2
+            let savedDBVersion = UserDefaults.standard.integer(forKey: "db_version")
+            
+            if savedDBVersion < currentDBVersion {
+                // Полная очистка старой базы
+                for q in existingQuestions {
+                    context.delete(q)
+                }
+                
+                // Загрузка новых вопросов
                 for question in MockData.questions {
                     context.insert(question)
                 }
                 try context.save()
+                
+                // Обновляем версию
+                UserDefaults.standard.set(currentDBVersion, forKey: "db_version")
             }
             
             return container
