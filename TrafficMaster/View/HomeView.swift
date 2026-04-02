@@ -122,55 +122,49 @@ struct HomeView: View {
         let questions = viewModel.allQuestions
         guard !questions.isEmpty else { return }
         
-        Task {
-            let sections = await HomeView.calculateSectionsStatic(from: questions)
-            await MainActor.run {
-                self.dynamicSections = sections
-                self.isLoading = false
-            }
-        }
+        self.dynamicSections = HomeView.calculateSectionsStatic(from: questions)
+        self.isLoading = false
     }
     
-    private static func calculateSectionsStatic(from questions: [Question]) async -> [LearningSection] {
-        return await Task.detached(priority: .userInitiated) {
-            let sectionsDict = Dictionary(grouping: questions, by: { $0.sectionTitle ?? "Раздел 1" })
+    @MainActor
+    private static func calculateSectionsStatic(from questions: [Question]) -> [LearningSection] {
+        let sectionsDict = Dictionary(grouping: questions, by: { $0.sectionTitle ?? "Раздел 1" })
+        
+        var sections: [LearningSection] = []
+        let colors: [Color] = [.blue, .purple, .orange, .pink]
+        var isCurrentAssigned = false
+        
+        for (secIndex, sectionTitle) in sectionsDict.keys.sorted().enumerated() {
+            let sectionQs = sectionsDict[sectionTitle]!
+            let chaptersDict = Dictionary(grouping: sectionQs, by: { $0.chapterTitle ?? "Глава 1" })
             
-            var sections: [LearningSection] = []
-            let colors: [Color] = [.blue, .purple, .orange, .pink]
-            var isCurrentAssigned = false
-            
-            for (secIndex, sectionTitle) in sectionsDict.keys.sorted().enumerated() {
-                let sectionQs = sectionsDict[sectionTitle]!
-                let chaptersDict = Dictionary(grouping: sectionQs, by: { $0.chapterTitle ?? "Глава 1" })
+            var nodes: [PathNode] = []
+            for chapterTitle in chaptersDict.keys.sorted() {
+                let chapterQs = chaptersDict[chapterTitle]!
+                let isCompleted = chapterQs.allSatisfy { $0.repetitions > 0 }
+                let isCurrent = !isCompleted && !isCurrentAssigned
                 
-                var nodes: [PathNode] = []
-                for chapterTitle in chaptersDict.keys.sorted() {
-                    let chapterQs = chaptersDict[chapterTitle]!
-                    let isCompleted = chapterQs.allSatisfy { $0.repetitions > 0 }
-                    let isCurrent = !isCompleted && !isCurrentAssigned
-                    
-                    if isCurrent { isCurrentAssigned = true }
-                    
-                    let isLocked = !isCompleted && !isCurrent
-                    
-                    nodes.append(PathNode(
-                        chapterName: chapterTitle,
-                        isLocked: isLocked,
-                        isCurrent: isCurrent,
-                        isCompleted: isCompleted,
-                        questions: chapterQs
-                    ))
-                }
+                if isCurrent { isCurrentAssigned = true }
                 
-                sections.append(LearningSection(
-                    title: sectionTitle,
-                    subtitle: "",
-                    color: colors[secIndex % colors.count],
-                    nodes: nodes
+                let isLocked = !isCompleted && !isCurrent
+                
+                nodes.append(PathNode(
+                    chapterName: chapterTitle,
+                    isLocked: isLocked,
+                    isCurrent: isCurrent,
+                    isCompleted: isCompleted,
+                    questions: chapterQs
                 ))
             }
-            return sections
-        }.value
+            
+            sections.append(LearningSection(
+                title: sectionTitle,
+                subtitle: "",
+                color: colors[secIndex % colors.count],
+                nodes: nodes
+            ))
+        }
+        return sections
     }
 }
 
