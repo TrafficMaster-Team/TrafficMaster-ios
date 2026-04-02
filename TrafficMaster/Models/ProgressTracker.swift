@@ -64,20 +64,27 @@ class ProgressTracker {
         let calendar = Calendar.current
         var result: [Int] = []
         
-        for i in (0..<30).reversed() {
-            let date = calendar.date(byAdding: .day, value: -i, to: Date())!
+        for index in (0..<30).reversed() {
+            let date = calendar.date(byAdding: .day, value: -index, to: Date())!
             let dateStr = dateFormatter.string(from: date)
             let count = history[dateStr] ?? 0
             
             // Нормализация для красивой отрисовки от 0 до 5:
             // 0 карточек = 0, 1-3 = 1, 4-6 = 2, 7-9 = 3, 10-15 = 4, >15 = 5
             let level: Int
-            if count == 0 { level = 0 }
-            else if count <= 3 { level = 1 }
-            else if count <= 6 { level = 2 }
-            else if count <= 9 { level = 3 }
-            else if count <= 15 { level = 4 }
-            else { level = 5 }
+            if count == 0 {
+                level = 0
+            } else if count <= 3 {
+                level = 1
+            } else if count <= 6 {
+                level = 2
+            } else if count <= 9 {
+                level = 3
+            } else if count <= 15 {
+                level = 4
+            } else {
+                level = 5
+            }
             
             result.append(level)
         }

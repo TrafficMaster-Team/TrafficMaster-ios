@@ -1,0 +1,30 @@
+{
+  "configurations" : [
+    {
+      "id" : "D6F9EEA1-7CDB-4E67-B8F7-0C7842483956",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:TrafficMaster.xcodeproj",
+      "identifier" : "F5A57B4C2F45F2D4002ADB59",
+      "name" : "TrafficMaster"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:TrafficMaster.xcodeproj",
+        "identifier" : "F52B05C32F7D80FE00F0E036",
+        "name" : "TrafficMasterUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

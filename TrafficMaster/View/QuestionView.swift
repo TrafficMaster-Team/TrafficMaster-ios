@@ -11,7 +11,11 @@ struct QuestionView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = QuestionViewModel()
     @State private var showingExitAlert = false
+    @State private var showSavedToast = false
+    
     var questions: [Question] = []
+    var isMarathonMode: Bool = false
+    var dailyLimit: Int = 20
     
     var body: some View {
         ZStack {
@@ -20,70 +24,51 @@ struct QuestionView: View {
                 .ignoresSafeArea()
             
             if viewModel.currentQuestion == nil {
-                // Экран завершения
-                VStack(spacing: 20) {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 80))
-                        .foregroundColor(.green)
-                    
-                    Text("Отличная работа!")
-                        .font(.largeTitle.weight(.bold))
-                    
-                    Text("На сегодня карточки для этого раздела закончились. Возвращайтесь позже.")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 40)
-                    
-                    Button(action: { dismiss() }) {
-                        Text("Вернуться на главную")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.blue)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                            .padding(.horizontal, 40)
-                    }
-                    .padding(.top, 20)
-                }
+                completionScreen
             } else {
                 // Основной интерфейс карточек
                 VStack(spacing: 0) {
                     ScrollView {
                         VStack(spacing: 24) {
-                            
-                            // Область вопроса и картинки
-                            VStack(spacing: 16) {
-                                // Картинка
-                                if let _ = viewModel.currentQuestion?.imageData {
-                                    imagePlaceholder
-                                }
-                                
-                                // Текст вопроса
-                                Text(viewModel.currentQuestion?.text ?? "Загрузка вопроса...")
-                                    .font(.system(.title3, design: .rounded, weight: .medium))
-                                    .multilineTextAlignment(.leading)
-                                    .foregroundColor(.primary)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.horizontal, 16)
-                            }
-                            .padding(.top, 16)
+                            questionAndImageArea
                             
                             // Варианты ответов
-                            if let question = viewModel.currentQuestion {
-                                optionsList(question: question)
+                            if viewModel.currentQuestion != nil {
+                                optionsList()
                             }
                             
+                            // Anki-счетчики (Общий прогресс)
+                            ankiCounters
+                                .padding(.top, 8)
+                            
                             // Пространство под плавающие кнопки
-                            Color.clear.frame(height: 120)
+                            Color.clear.frame(height: 200)
                         }
                     }
                 }
                 
-                // Плавающие кнопки действий (Ответил наугад / Дальше)
+                // Плавающие кнопки действий
                 if viewModel.userAnswerIndex != nil {
                     actionButtons
+                }
+                
+                // Индикатор сохранения
+                if showSavedToast {
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Image(systemName: "icloud.and.arrow.down.fill")
+                            Text("Прогресс сохранен")
+                        }
+                        .font(.system(.caption, design: .rounded, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color.black.opacity(0.6))
+                        .clipShape(Capsule())
+                        .padding(.bottom, 120)
+                    }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
         }
@@ -92,6 +77,9 @@ struct QuestionView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                principalToolbarContent
+            }
             ToolbarItem(placement: .topBarLeading) {
                 leadingToolbarContent
             }
@@ -104,53 +92,130 @@ struct QuestionView: View {
             Button("Выйти", role: .destructive) { dismiss() }
         }
         .onAppear {
-            viewModel.loadQuestions(questions)
-        }
-        .onChange(of: questions) { _, newValue in
-            viewModel.loadQuestions(newValue)
+            // Debug logging for marathon mode
+            if isMarathonMode {
+                print("🏃 Marathon Mode: Loading questions...")
+            }
+            
+            viewModel.loadQuestions(isMarathon: isMarathonMode, dailyNewLimit: dailyLimit)
         }
     }
     
     // MARK: - Subviews
     
-    private var imagePlaceholder: some View {
-        ZStack {
-            Rectangle()
-                .fill(.ultraThinMaterial)
+    private var completionScreen: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 80))
+                .foregroundColor(.green)
             
-            Image(systemName: "car.fill")
-                .resizable()
-                .scaledToFit()
-                .frame(height: 80)
-                .foregroundColor(.white.opacity(0.7))
+            Text(isMarathonMode ? "Марафон завершен!" : "Отличная работа!")
+                .font(.largeTitle.weight(.bold))
+            
+            let msg = isMarathonMode ?
+                "Вы прошли порцию вопросов в этом режиме. Отличный результат для запоминания!" :
+                "На сегодня карточки для этого раздела закончились. Возвращайтесь позже."
+            
+            Text(msg)
+                .font(.body)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+            
+            VStack(spacing: 12) {
+                if isMarathonMode {
+                    Button(action: {
+                        Haptics.impact(.light)
+                        withAnimation {
+                            viewModel.loadMoreMarathonQuestions(count: dailyLimit)
+                        }
+                    }, label: {
+                        Text("Добавить еще \(dailyLimit) вопросов")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(
+                                LinearGradient(colors: [.orange, .pink], startPoint: .topLeading, endPoint: .bottomTrailing)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .shadow(color: .orange.opacity(0.3), radius: 8, x: 0, y: 4)
+                    })
+                }
+                
+                Button(action: {
+                    Haptics.impact(.medium)
+                    dismiss()
+                }, label: {
+                    Text("Вернуться на главную")
+                        .font(.headline)
+                        .foregroundColor(isMarathonMode ? .blue : .white)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(isMarathonMode ? Color.blue.opacity(0.1) : Color.blue)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                })
+            }
+            .padding(.horizontal, 40)
+            .padding(.top, 20)
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: 220)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(.white.opacity(0.3), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
-        .padding(.horizontal, 16)
+        .onAppear {
+            Haptics.notification(.success)
+        }
     }
     
-    private func optionsList(question: Question) -> some View {
+    private var questionAndImageArea: some View {
+        VStack(spacing: 16) {
+            // Картинка
+            if let imageName = viewModel.currentQuestion?.imageName {
+                Image(imageName)
+                    .resizable()
+                    .scaledToFit()
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                    )
+                    .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 5)
+                    .padding(.horizontal, 16)
+            }
+            
+            // Текст вопроса
+            Text(viewModel.currentQuestion?.text ?? "Загрузка вопроса...")
+                .font(.system(.title3, design: .rounded, weight: .medium))
+                .multilineTextAlignment(.leading)
+                .foregroundColor(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
+        }
+        .padding(.top, 16)
+    }
+    
+    private func optionsList() -> some View {
         VStack(spacing: 12) {
-            ForEach(Array(question.options.enumerated()), id: \.offset) { index, option in
+            ForEach(Array(viewModel.shuffledOptions.enumerated()), id: \.offset) { index, option in
                 Button(action: {
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                         viewModel.selectAnswer(index: index)
+
+                        // Haptics based on correctness
+                        if viewModel.isCorrect == true {
+                            Haptics.notification(.success)
+                        } else {
+                            Haptics.notification(.error)
+                        }
                     }
-                }) {
+                }, label: {
                     HStack(spacing: 0) {
+                        // Нумерация варианта (1, 2, 3, 4)
                         Text("\(index + 1)")
                             .font(.system(.headline, design: .rounded, weight: .bold))
                             .foregroundColor(.white)
                             .frame(width: 44)
                             .frame(maxHeight: .infinity)
                             .background(Color.gray.opacity(0.6))
-                        
+
+                        // Текст варианта
                         Text(option)
                             .font(.system(.body, design: .rounded, weight: .regular))
                             .foregroundColor(.primary)
@@ -158,7 +223,7 @@ struct QuestionView: View {
                             .padding(.horizontal, 16)
                             .padding(.vertical, 14)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                        
+
                         if viewModel.selectedOptionIndex == index {
                             Image(systemName: viewModel.isCorrect == true ? "checkmark.circle.fill" : "xmark.circle.fill")
                                 .font(.title3)
@@ -174,7 +239,7 @@ struct QuestionView: View {
                             .stroke(.white.opacity(0.4), lineWidth: 1)
                             .blendMode(.overlay)
                     )
-                }
+                })
                 .disabled(viewModel.userAnswerIndex != nil)
                 .buttonStyle(SquishyButtonStyle())
             }
@@ -182,108 +247,195 @@ struct QuestionView: View {
         .padding(.horizontal, 16)
     }
     
+    private var ankiCounters: some View {
+        VStack(spacing: 8) {
+            Text("ВАШ ПРОГРЕСС")
+                .font(.system(size: 10, weight: .black, design: .rounded))
+                .foregroundColor(.secondary)
+            
+            HStack(spacing: 24) {
+                ankiCounterView(count: viewModel.blueCount, title: "Новые", color: .blue)
+                ankiCounterView(count: viewModel.yellowCount, title: "В изучении", color: .orange)
+                ankiCounterView(count: viewModel.greenCount, title: "Выучено", color: .green)
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 12)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+    }
+    
+    private func ankiCounterView(count: Int, title: String, color: Color) -> some View {
+        VStack(spacing: 4) {
+            Text("\(count)")
+                .font(.system(.title3, design: .rounded, weight: .bold))
+                .foregroundColor(color)
+            Text(title)
+                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .foregroundColor(.secondary)
+        }
+    }
+    
     private var actionButtons: some View {
         VStack {
             Spacer()
             VStack(spacing: 12) {
                 if viewModel.showGuessedButton {
-                    Button(action: {
-                        withAnimation(.spring()) {
-                            viewModel.markAsGuessed()
-                        }
-                    }) {
-                        Text("Ответил наугад 🤔")
-                            .font(.system(.headline, design: .rounded, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                LinearGradient(colors: [.orange, .pink], startPoint: .topLeading, endPoint: .bottomTrailing)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                            .shadow(color: .orange.opacity(0.3), radius: 8, x: 0, y: 4)
-                    }
-                    .buttonStyle(SquishyButtonStyle())
-                    .transition(.scale.combined(with: .opacity))
+                    guessedButton
                 }
                 
-                Button(action: {
-                    withAnimation(.spring()) {
-                        viewModel.continueToNext()
-                    }
-                }) {
-                    Text("Дальше")
-                        .font(.system(.headline, design: .rounded, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(
-                            LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                        .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
-                }
-                .buttonStyle(SquishyButtonStyle())
+                continueButton
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 20)
             .background(
-                LinearGradient(colors: [.clear, UIColor.systemBackground.color.opacity(0.8)], startPoint: .top, endPoint: .bottom)
-                    .ignoresSafeArea()
+                LinearGradient(
+                    colors: [.clear, UIColor.systemBackground.color.opacity(0.9)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
             )
         }
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }
     
-    private var leadingToolbarContent: some View {
-        Button(action: { showingExitAlert = true }) {
-            HStack(spacing: 8) {
-                Image(systemName: "chevron.left")
-                    .font(.body.weight(.semibold))
-                
-                if let question = viewModel.currentQuestion {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(question.sectionTitle ?? "Раздел")
-                            .font(.system(.caption, design: .rounded, weight: .medium))
-                            .foregroundColor(.secondary)
-                        Text(question.chapterTitle ?? "Глава")
-                            .font(.system(.subheadline, design: .rounded, weight: .bold))
-                    }
-                }
+    private var guessedButton: some View {
+        Button(action: {
+            Haptics.impact(.medium)
+            withAnimation(.spring()) {
+                viewModel.markAsGuessed()
+                triggerSaveToast()
             }
-            .foregroundColor(.primary)
+        }, label: {
+            Text("Ответил наугад 🤔")
+                .font(.system(.headline, design: .rounded, weight: .bold))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(
+                    LinearGradient(colors: [.orange, .pink], startPoint: .topLeading, endPoint: .bottomTrailing)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .shadow(color: .orange.opacity(0.3), radius: 8, x: 0, y: 4)
+        })
+        .buttonStyle(SquishyButtonStyle())
+        .transition(.scale.combined(with: .opacity))
+    }
+    
+    private var continueButton: some View {
+        Button(action: {
+            Haptics.selection()
+            withAnimation(.spring()) {
+                viewModel.continueToNext()
+                triggerSaveToast()
+            }
+        }, label: {
+            Text("Дальше")
+                .font(.system(.headline, design: .rounded, weight: .bold))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(
+                    LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
+        })
+        .buttonStyle(SquishyButtonStyle())
+    }
+    
+    private func triggerSaveToast() {
+        withAnimation { showSavedToast = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            withAnimation { showSavedToast = false }
         }
     }
     
-    private var trailingToolbarContent: some View {
-        HStack(spacing: 8) {
-            HStack(spacing: 4) {
-                let totalTarget = viewModel.targetNewCards + viewModel.cardsToReviewCount
-                Text("\(viewModel.learnedTodayCount)/\(totalTarget)")
-                    .font(.system(.subheadline, design: .rounded, weight: .bold))
-                    .foregroundColor(.primary)
+    private var principalToolbarContent: some View {
+        Group {
+            if let question = viewModel.currentQuestion {
+                VStack(spacing: 2) {
+                    Text(question.sectionTitle ?? "Раздел")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundColor(.secondary)
+                        .textCase(.uppercase)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Text(question.chapterTitle ?? "Глава")
+                        .font(.system(size: 12, weight: .black, design: .rounded))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
+                .background(Color.gray.opacity(0.1))
+                .clipShape(Capsule())
+            } else if isMarathonMode {
+                Text("МАРАФОН")
+                    .font(.system(.headline, design: .rounded, weight: .black))
+                    .foregroundColor(.orange)
             }
-            
-            HStack(spacing: 4) {
-                Image(systemName: "arrow.2.circlepath")
-                    .font(.caption2)
-                Text("\(viewModel.cardsToReviewCount)")
-                    .font(.system(.subheadline, design: .rounded, weight: .bold))
-            }
-            .foregroundColor(.orange)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(Color.gray.opacity(0.1))
-        .clipShape(Capsule())
+    }
+    
+    private var leadingToolbarContent: some View {
+        Button(action: {
+            Haptics.selection()
+            showingExitAlert = true
+        }, label: {
+            HStack(spacing: 6) {
+                Image(systemName: "chevron.left")
+                    .font(.body.weight(.semibold))
+                Text("Назад")
+                    .font(.body)
+            }
+            .foregroundColor(.primary)
+        })
+    }
+    
+    @ViewBuilder
+    private var trailingToolbarContent: some View {
+        if !isMarathonMode {
+            HStack(spacing: 8) {
+                HStack(spacing: 4) {
+                    let totalTarget = viewModel.targetNewCards + viewModel.dueTodayCount
+                    Text("\(viewModel.learnedTodayCount)/\(totalTarget)")
+                        .font(.system(.subheadline, design: .rounded, weight: .bold))
+                        .foregroundColor(.primary)
+                }
+                
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.2.circlepath")
+                        .font(.caption2)
+                    Text("\(viewModel.dueTodayCount)")
+                        .font(.system(.subheadline, design: .rounded, weight: .bold))
+                }
+                .foregroundColor(.orange)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color.gray.opacity(0.1))
+            .clipShape(Capsule())
+        }
     }
     
     private func optionBackground(for index: Int) -> AnyShapeStyle {
         if let userIndex = viewModel.userAnswerIndex {
-            if index == viewModel.currentQuestion?.correctAnswerIndex {
-                return AnyShapeStyle(Color.green.opacity(0.2).shadow(.inner(color: .green.opacity(0.5), radius: 5)))
+            if index == viewModel.correctAnswerIndexInShuffled {
+                let color = Color.green.opacity(0.2)
+                let shadow = ShadowStyle.inner(color: .green.opacity(0.5), radius: 5)
+                return AnyShapeStyle(color.shadow(shadow))
             } else if index == userIndex && viewModel.isCorrect == false {
-                return AnyShapeStyle(Color.red.opacity(0.2).shadow(.inner(color: .red.opacity(0.5), radius: 5)))
+                let color = Color.red.opacity(0.2)
+                let shadow = ShadowStyle.inner(color: .red.opacity(0.5), radius: 5)
+                return AnyShapeStyle(color.shadow(shadow))
             }
         }
         return AnyShapeStyle(.ultraThinMaterial)
@@ -292,28 +444,6 @@ struct QuestionView: View {
 
 // MARK: - Helper Views & Styles
 
-struct ProgressHeaderView: View {
-    let totalQuestions: Int
-    let currentIndex: Int
-    
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                // Номера вопросов
-                ForEach(0..<max(1, totalQuestions), id: \.self) { index in
-                    Text("\(index + 1)")
-                        .font(.system(.subheadline, design: .rounded, weight: index == currentIndex ? .bold : .medium))
-                        .frame(width: 40, height: 36)
-                        .background(index == currentIndex ? Color.primary.opacity(0.1) : Color.clear)
-                        .foregroundColor(.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
-            }
-            .padding(.horizontal, 16)
-        }
-    }
-}
-
 struct MeshGradientBackground: View {
     @State private var animate = false
     
@@ -321,29 +451,23 @@ struct MeshGradientBackground: View {
         ZStack {
             Color(UIColor.systemBackground)
             
-            Circle()
-                .fill(Color.blue.opacity(0.15))
-                .blur(radius: 60)
-                .frame(width: 300, height: 300)
-                .offset(x: animate ? 100 : -100, y: animate ? -150 : 100)
-            
-            Circle()
-                .fill(Color.purple.opacity(0.15))
-                .blur(radius: 60)
-                .frame(width: 300, height: 300)
-                .offset(x: animate ? -100 : 100, y: animate ? 150 : -100)
-            
-            Circle()
-                .fill(Color.gray.opacity(0.1))
-                .blur(radius: 60)
-                .frame(width: 200, height: 200)
-                .offset(x: 0, y: animate ? -50 : 50)
+            glowCircle(color: .blue.opacity(0.15), width: 300, xOff: animate ? 100 : -100, yOff: animate ? -150 : 100)
+            glowCircle(color: .purple.opacity(0.15), width: 300, xOff: animate ? -100 : 100, yOff: animate ? 150 : -100)
+            glowCircle(color: .gray.opacity(0.1), width: 200, xOff: 0, yOff: animate ? -50 : 50)
         }
         .onAppear {
             withAnimation(.easeInOut(duration: 8).repeatForever(autoreverses: true)) {
                 animate.toggle()
             }
         }
+    }
+    
+    private func glowCircle(color: Color, width: CGFloat, xOff: CGFloat, yOff: CGFloat) -> some View {
+        Circle()
+            .fill(color)
+            .blur(radius: 60)
+            .frame(width: width, height: width)
+            .offset(x: xOff, y: yOff)
     }
 }
 
@@ -355,6 +479,24 @@ struct SquishyButtonStyle: ButtonStyle {
     }
 }
 
+// MARK: - Haptics Helper
+struct Haptics {
+    static func selection() {
+        let generator = UISelectionFeedbackGenerator()
+        generator.selectionChanged()
+    }
+    
+    static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        let generator = UIImpactFeedbackGenerator(style: style)
+        generator.impactOccurred()
+    }
+    
+    static func notification(_ type: UINotificationFeedbackGenerator.FeedbackType) {
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(type)
+    }
+}
+
 // Extension to bridge UIColor to SwiftUI Color easily
 extension UIColor {
     var color: Color {
@@ -363,5 +505,9 @@ extension UIColor {
 }
 
 #Preview {
-    QuestionView(questions: [])
+    QuestionView(questions: [], isMarathonMode: true)
+}
+
+#Preview("Standard") {
+    QuestionView(questions: [], isMarathonMode: false)
 }

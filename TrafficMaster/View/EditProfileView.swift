@@ -5,8 +5,8 @@
 //  Created by Влад on 18.02.26.
 //
 
-import SwiftUI
 import PhotosUI
+import SwiftUI
 
 struct EditProfileView: View {
     @Environment(\.dismiss) private var dismiss
@@ -16,7 +16,7 @@ struct EditProfileView: View {
     @State private var lastName: String = ""
     @State private var username: String = ""
     @State private var showImagePicker = false
-    @State private var avatarData: Data? = nil
+    @State private var avatarData: Data?
     
     var body: some View {
         NavigationStack {
@@ -24,7 +24,9 @@ struct EditProfileView: View {
                 Section {
                     HStack {
                         Spacer()
-                        Button(action: { showImagePicker = true }) {
+                        Button(action: {
+                            showImagePicker = true
+                        }, label: {
                             ZStack {
                                 if let avatarData = avatarData, let uiImage = UIImage(data: avatarData) {
                                     Image(uiImage: uiImage)
@@ -46,7 +48,7 @@ struct EditProfileView: View {
                                 Circle()
                                     .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                             )
-                        }
+                        })
                         .sheet(isPresented: $showImagePicker) {
                             ImagePicker(selectedImageData: $avatarData)
                         }
@@ -67,7 +69,9 @@ struct EditProfileView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") { dismiss() }
+                    Button("Отмена") {
+                        dismiss()
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Сохранить") {
@@ -85,7 +89,7 @@ struct EditProfileView: View {
         }
         .onAppear {
             firstName = profileManager.firstName
-            lastName = profileManager.lastName
+            lastName = lastName
             username = profileManager.username
             avatarData = profileManager.avatarData
         }

@@ -21,7 +21,9 @@ struct ProfileView: View {
             List {
                 // СЕКЦИЯ А: Учетная запись (Header)
                 Section {
-                    Button(action: { showEditProfile = true }) {
+                    Button(action: {
+                        showEditProfile = true
+                    }, label: {
                         HStack(spacing: 16) {
                             if let avatarData = profileManager.avatarData, let uiImage = UIImage(data: avatarData) {
                                 Image(uiImage: uiImage)
@@ -56,14 +58,14 @@ struct ProfileView: View {
                                 .foregroundColor(.secondary)
                         }
                         .padding(.vertical, 4)
-                    }
+                    })
                 }
                 
                 // СЕКЦИЯ Б: Монетизация (TrafficMaster Premium)
                 Section {
                     Button(action: {
                         // Действие для вызова Paywall
-                    }) {
+                    }, label: {
                         HStack(spacing: 16) {
                             SettingsIconView(icon: "star.fill", backgroundColor: .blue)
                             
@@ -80,7 +82,7 @@ struct ProfileView: View {
                                 .font(.footnote.weight(.semibold))
                                 .foregroundColor(.secondary)
                         }
-                    }
+                    })
                 }
                 
                 // СЕКЦИЯ В: Настройки обучения
@@ -109,20 +111,21 @@ struct ProfileView: View {
                     // Сброс прогресса
                     Button(action: {
                         showResetAlert = true
-                    }) {
+                    }, label: {
                         HStack {
                             SettingsIconView(icon: "trash.fill", backgroundColor: .gray)
                             Text("Сбросить весь прогресс")
                                 .foregroundColor(.red)
                         }
-                    }
+                    })
                     .alert("Сброс прогресса", isPresented: $showResetAlert) {
                         Button("Отмена", role: .cancel) { }
                         Button("Сбросить", role: .destructive) {
                             // Логика удаления данных SwiftData
                         }
                     } message: {
-                        Text("Вы уверены? Это удалит всю историю повторений и статистику. Это действие нельзя отменить.")
+                        let msg = "Вы уверены? Это удалит всю историю повторений и статистику. Это действие нельзя отменить."
+                        Text(msg)
                     }
                 }
                 
@@ -130,35 +133,35 @@ struct ProfileView: View {
                 Section(header: Text("Поддержка")) {
                     Button(action: {
                         // Действие для отзыва
-                    }) {
+                    }, label: {
                         HStack {
                             SettingsIconView(icon: "heart.fill", backgroundColor: .pink)
                             Text("Оценить приложение")
                                 .foregroundColor(.primary)
                         }
-                    }
+                    })
                     
                     Button(action: {
                         if let url = URL(string: "https://t.me/traffic_master_team") {
                             UIApplication.shared.open(url)
                         }
-                    }) {
+                    }, label: {
                         HStack {
                             SettingsIconView(icon: "envelope.fill", backgroundColor: .teal)
                             Text("Написать разработчикам")
                                 .foregroundColor(.primary)
                         }
-                    }
+                    })
                     
                     Button(action: {
                         // Открыть Safari/WebView
-                    }) {
+                    }, label: {
                         HStack {
                             SettingsIconView(icon: "hand.raised.fill", backgroundColor: .indigo)
                             Text("Политика конфиденциальности")
                                 .foregroundColor(.primary)
                         }
-                    }
+                    })
                 }
                 
                 // Версия приложения (Footer)

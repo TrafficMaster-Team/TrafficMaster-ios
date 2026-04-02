@@ -5,8 +5,8 @@
 //  Created by Влад on 18.02.26.
 //
 
-import SwiftUI
 import PhotosUI
+import SwiftUI
 
 struct LoginView: View {
     @StateObject private var profileManager = ProfileManager.shared
@@ -15,7 +15,7 @@ struct LoginView: View {
     @State private var lastName: String = ""
     @State private var username: String = ""
     @State private var showImagePicker = false
-    @State private var avatarData: Data? = nil
+    @State private var avatarData: Data?
     
     var body: some View {
         NavigationStack {
@@ -37,7 +37,9 @@ struct LoginView: View {
                         .padding(.top, 40)
                         
                         // Avatar Picker
-                        Button(action: { showImagePicker = true }) {
+                        Button(action: {
+                            showImagePicker = true
+                        }, label: {
                             ZStack {
                                 if let avatarData = avatarData, let uiImage = UIImage(data: avatarData) {
                                     Image(uiImage: uiImage)
@@ -60,7 +62,7 @@ struct LoginView: View {
                                     .stroke(Color.white.opacity(0.3), lineWidth: 2)
                             )
                             .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-                        }
+                        })
                         .sheet(isPresented: $showImagePicker) {
                             ImagePicker(selectedImageData: $avatarData)
                         }
@@ -85,7 +87,7 @@ struct LoginView: View {
                                 profileManager.avatarData = avatarData
                             }
                             profileManager.isLoggedIn = true // Пропускаем дальше
-                        }) {
+                        }, label: {
                             Text("Начать обучение")
                                 .font(.system(.headline, design: .rounded, weight: .bold))
                                 .foregroundColor(.white)
@@ -96,7 +98,7 @@ struct LoginView: View {
                                 )
                                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                                 .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
-                        }
+                        })
                         .padding(.horizontal, 20)
                         .padding(.bottom, 40)
                         .disabled(firstName.isEmpty)

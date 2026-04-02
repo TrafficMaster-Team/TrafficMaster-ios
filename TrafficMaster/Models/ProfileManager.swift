@@ -5,8 +5,8 @@
 //  Created by Влад on 18.02.26.
 //
 
-import SwiftUI
 import Combine
+import SwiftUI
 
 class ProfileManager: ObservableObject {
     static let shared = ProfileManager()

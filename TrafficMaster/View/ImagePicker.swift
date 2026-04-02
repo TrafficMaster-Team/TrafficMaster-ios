@@ -33,7 +33,7 @@ struct ImagePicker: UIViewControllerRepresentable {
             self.parent = parent
         }
 
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
             // Пытаемся получить обрезанное изображение, если нет - берем оригинал
             if let editedImage = info[.editedImage] as? UIImage {
                 parent.selectedImageData = editedImage.jpegData(compressionQuality: 0.8)
