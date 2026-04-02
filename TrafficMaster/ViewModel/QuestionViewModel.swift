@@ -25,6 +25,8 @@ class QuestionViewModel {
     
     // Session Queue
     private var sessionQueue: [Question] = []
+    private var sessionCards: [Question] = [] // Tracks the full batch for UI counters
+    private let marathonMasteryThreshold = 2
     
     // FSRS Scheduler (Domain Layer)
     private let fsrScheduler = FSRSScheduler()
@@ -55,14 +57,9 @@ class QuestionViewModel {
     }
     
     private func updateCounters() {
-        var queue = sessionQueue
-        if let current = currentQuestion {
-            queue.append(current)
-        }
-        
-        blueCount = queue.filter { $0.repetitions == 0 }.count
-        yellowCount = queue.filter { $0.repetitions > 0 && $0.repetitions < 10 }.count
-        greenCount = queue.filter { $0.repetitions >= 10 }.count
+        blueCount = sessionCards.filter { $0.repetitions == 0 }.count
+        yellowCount = sessionCards.filter { $0.repetitions > 0 && $0.repetitions < marathonMasteryThreshold }.count
+        greenCount = sessionCards.filter { $0.repetitions >= marathonMasteryThreshold }.count
     }
     
     func loadQuestions(isMarathon: Bool = false, dailyNewLimit: Int = 20, isExamMode: Bool = false) {
@@ -103,13 +100,15 @@ class QuestionViewModel {
     }
     
     private func setupMarathonSession() {
-        // Marathon mode: start with a fresh batch of strictly new questions
+        // Load cards that are currently "in learning" (yellow)
+        let inLearning = allQuestions.filter { $0.repetitions > 0 && $0.repetitions < marathonMasteryThreshold }
         let newQuestions = allQuestions.filter { $0.repetitions == 0 }.prefix(targetNewCards)
         
-        sessionQueue = Array(newQuestions)
+        sessionCards = Array(inLearning) + Array(newQuestions)
+        sessionQueue = sessionCards
         sessionQueue.shuffle()
         
-        cardsToReviewCount = 0
+        cardsToReviewCount = inLearning.count
         loadNextFromQueue()
     }
     
@@ -118,7 +117,8 @@ class QuestionViewModel {
         let dueQuestions = allQuestions.filter { $0.repetitions > 0 && $0.nextReviewDate <= now }
         let newQuestions = allQuestions.filter { $0.repetitions == 0 }.prefix(targetNewCards)
         
-        sessionQueue = Array(dueQuestions) + Array(newQuestions)
+        sessionCards = Array(dueQuestions) + Array(newQuestions)
+        sessionQueue = sessionCards
         sessionQueue.shuffle()
         
         cardsToReviewCount = dueQuestions.count
@@ -126,15 +126,12 @@ class QuestionViewModel {
     }
     
     func loadMoreMarathonQuestions(count: Int = 20) {
-        // Find strictly new questions (repetitions == 0) that aren't already in the queue
-        var inQueueIds = Set(sessionQueue.map { $0.id })
-        if let currentId = currentQuestion?.id {
-            // Usually currentQuestion is nil when calling this, but just in case
-            _ = inQueueIds.insert(currentId)
-        }
+        // Find strictly new questions (repetitions == 0) that aren't already in the batch
+        var inSessionIds = Set(sessionCards.map { $0.id })
         
-        let additionalNew = allQuestions.filter { $0.repetitions == 0 && !inQueueIds.contains($0.id) }.prefix(count)
+        let additionalNew = allQuestions.filter { $0.repetitions == 0 && !inSessionIds.contains($0.id) }.prefix(count)
         
+        sessionCards.append(contentsOf: additionalNew)
         sessionQueue.append(contentsOf: additionalNew)
         sessionQueue.shuffle()
         
@@ -143,6 +140,8 @@ class QuestionViewModel {
         if currentQuestion == nil {
             loadNextFromQueue()
         }
+        
+        updateCounters()
     }
     
     private func loadNextFromQueue() {
@@ -206,10 +205,8 @@ class QuestionViewModel {
         if grade == .good {
             question.repetitions += 1
             
-            // If the question hasn't reached fully mastered (e.g. repetitions >= 10), we could put it back.
-            // But in Anki, hitting 'good' on a new card puts it in learning. Let's say if repetitions < 2, 
-            // we show it again in this session to ensure it's memorized.
-            if isMarathon && question.repetitions < 2 {
+            // Re-insert into queue if not reached mastery threshold
+            if isMarathon && question.repetitions < marathonMasteryThreshold {
                 let insertIndex = min(sessionQueue.count, Int.random(in: 3...8))
                 sessionQueue.insert(question, at: insertIndex)
             }
@@ -220,6 +217,7 @@ class QuestionViewModel {
             question.repetitions = 0
             question.interval = 1
             
+            // Re-insert failed question into queue
             let insertIndex = min(sessionQueue.count, Int.random(in: 2...6))
             sessionQueue.insert(question, at: insertIndex)
             
