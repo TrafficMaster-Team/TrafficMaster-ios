@@ -175,12 +175,12 @@ struct QuestionView: View {
                             .padding(.vertical, 14)
                             .frame(maxWidth: .infinity, alignment: .leading)
 
-                        if viewModel.selectedOptionIndex == index {
-                            Image(systemName: viewModel.isCorrect == true ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                .font(.title3)
-                                .foregroundColor(viewModel.isCorrect == true ? .green : .red)
-                                .padding(.trailing, 16)
-                        }
+                        Image(systemName: viewModel.isCorrect == true ? "checkmark.circle.fill" : "xmark.circle.fill")
+                            .font(.title3)
+                            .foregroundColor(viewModel.isCorrect == true ? .green : .red)
+                            .opacity(viewModel.selectedOptionIndex == index ? 1 : 0)
+                            .frame(width: 24, height: 24)
+                            .padding(.trailing, 16)
                     }
                     .fixedSize(horizontal: false, vertical: true)
                     .background(optionBackground(for: index))
