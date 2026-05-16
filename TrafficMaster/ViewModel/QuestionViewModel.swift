@@ -13,10 +13,12 @@ class QuestionViewModel {
     var allQuestions: [Question] = []
     var currentQuestion: Question?
     var shuffledOptions: [String] = []
+    private var shuffledAnswerOptions: [AnswerOption] = []
     var selectedOptionIndex: Int?
     var isCorrect: Bool?
     var userAnswerIndex: Int?
     var showExplanation = false
+    private var questionShownAt: Date?
     
     // Anki / Progress tracking
     var targetNewCards = 0
@@ -26,7 +28,7 @@ class QuestionViewModel {
     // Session Queue
     private var sessionQueue: [Question] = []
     private var sessionCards: [Question] = [] // Tracks the full batch for UI counters
-    private let marathonMasteryThreshold = 2
+    private let masteryThreshold = 2
     
     // FSRS Scheduler (Domain Layer)
     private let fsrScheduler = FSRSScheduler()
@@ -34,7 +36,6 @@ class QuestionViewModel {
     // Exam Mode
     private var examQueue: [Question] = []
     private var isExamMode = false
-    private var isMarathon = false
     
     // Stats for UI (Stored properties to trigger SwiftUI updates)
     var blueCount: Int = 0
@@ -48,39 +49,48 @@ class QuestionViewModel {
     
     var correctAnswerIndexInShuffled: Int? {
         guard let question = currentQuestion else { return nil }
+        if let explicitIndex = shuffledAnswerOptions.firstIndex(where: { $0.isCorrect == true }) {
+            return explicitIndex
+        }
+        
+        if let explicitCorrectID = question.answerOptions.first(where: { $0.isCorrect == true })?.id {
+            return shuffledAnswerOptions.firstIndex(where: { $0.id == explicitCorrectID })
+        }
+        
         let correctText = question.options[question.correctAnswerIndex]
         return shuffledOptions.firstIndex(of: correctText)
     }
     
     var showGuessedButton: Bool {
-        userAnswerIndex != nil && isCorrect == false
+        userAnswerIndex != nil && isCorrect == true
     }
     
     private func updateCounters() {
         blueCount = sessionCards.filter { $0.repetitions == 0 }.count
-        yellowCount = sessionCards.filter { $0.repetitions > 0 && $0.repetitions < marathonMasteryThreshold }.count
-        greenCount = sessionCards.filter { $0.repetitions >= marathonMasteryThreshold }.count
+        yellowCount = sessionCards.filter { $0.repetitions > 0 && $0.repetitions < masteryThreshold }.count
+        greenCount = sessionCards.filter { $0.repetitions >= masteryThreshold }.count
     }
     
-    func loadQuestions(isMarathon: Bool = false, dailyNewLimit: Int = 20, isExamMode: Bool = false) {
+    func loadQuestions(dailyNewLimit: Int = 34, isExamMode: Bool = false) {
         do {
+            print("📥 QuestionViewModel.loadQuestions() called")
             let questions = try DatabaseService.shared.fetchAllQuestions()
+            print("✅ Successfully loaded \(questions.count) questions from SQLite")
             self.allQuestions = questions
-            self.isMarathon = isMarathon
             self.isExamMode = isExamMode
             self.targetNewCards = dailyNewLimit
 
             if isExamMode {
                 setupExamSession()
-            } else if isMarathon {
-                setupMarathonSession()
             } else {
                 setupStandardSession()
             }
-            
+
             updateCounters()
+            print("🎯 Session setup complete, sessionCards: \(sessionCards.count)")
         } catch {
             print("❌ Failed to load questions from SQLite: \(error)")
+            print("❌ Error details: \(error.localizedDescription)")
         }
     }
     
@@ -96,20 +106,7 @@ class QuestionViewModel {
         }
         let nextQuestion = examQueue.removeFirst()
         currentQuestion = nextQuestion
-        shuffledOptions = nextQuestion.options.shuffled()
-    }
-    
-    private func setupMarathonSession() {
-        // Load cards that are currently "in learning" (yellow)
-        let inLearning = allQuestions.filter { $0.repetitions > 0 && $0.repetitions < marathonMasteryThreshold }
-        let newQuestions = allQuestions.filter { $0.repetitions == 0 }.prefix(targetNewCards)
-        
-        sessionCards = Array(inLearning) + Array(newQuestions)
-        sessionQueue = sessionCards
-        sessionQueue.shuffle()
-        
-        cardsToReviewCount = inLearning.count
-        loadNextFromQueue()
+        prepareShuffledOptions(for: nextQuestion)
     }
     
     private func setupStandardSession() {
@@ -125,25 +122,6 @@ class QuestionViewModel {
         loadNextFromQueue()
     }
     
-    func loadMoreMarathonQuestions(count: Int = 20) {
-        // Find strictly new questions (repetitions == 0) that aren't already in the batch
-        var inSessionIds = Set(sessionCards.map { $0.id })
-        
-        let additionalNew = allQuestions.filter { $0.repetitions == 0 && !inSessionIds.contains($0.id) }.prefix(count)
-        
-        sessionCards.append(contentsOf: additionalNew)
-        sessionQueue.append(contentsOf: additionalNew)
-        sessionQueue.shuffle()
-        
-        targetNewCards += count
-        
-        if currentQuestion == nil {
-            loadNextFromQueue()
-        }
-        
-        updateCounters()
-    }
-    
     private func loadNextFromQueue() {
         guard !sessionQueue.isEmpty else {
             currentQuestion = nil
@@ -151,7 +129,7 @@ class QuestionViewModel {
         }
         let next = sessionQueue.removeFirst()
         currentQuestion = next
-        shuffledOptions = next.options.shuffled()
+        prepareShuffledOptions(for: next)
     }
     
     func selectAnswer(index: Int) {
@@ -177,7 +155,7 @@ class QuestionViewModel {
     }
 
     func markAsGuessed() {
-        applyFSRSRating(grade: .good)
+        applyFSRSRating(grade: .again)
     }
 
     private func applyFSRSRating(grade: FSRSScheduler.Grade) {
@@ -202,18 +180,7 @@ class QuestionViewModel {
         question.retrievability = result.retrievability
         question.nextReviewDate = result.nextReviewDate
 
-        if grade == .good {
-            question.repetitions += 1
-            
-            // Re-insert into queue if not reached mastery threshold
-            if isMarathon && question.repetitions < marathonMasteryThreshold {
-                let insertIndex = min(sessionQueue.count, Int.random(in: 3...8))
-                sessionQueue.insert(question, at: insertIndex)
-            }
-            
-            loadNextFromQueue()
-            learnedTodayCount += 1
-        } else {
+        if grade == .again {
             question.repetitions = 0
             question.interval = 1
             
@@ -222,7 +189,17 @@ class QuestionViewModel {
             sessionQueue.insert(question, at: insertIndex)
             
             loadNextFromQueue()
+        } else {
+            question.repetitions += 1
+            
+            loadNextFromQueue()
+            learnedTodayCount += 1
         }
+        
+        question.interval = max(
+            1,
+            Calendar.current.dateComponents([.day], from: Date(), to: question.nextReviewDate).day ?? 1
+        )
 
         // Save to SQLite
         do {
@@ -239,6 +216,22 @@ class QuestionViewModel {
                 preDifficulty: cardState.difficulty
             )
             try DatabaseService.shared.saveRevlog(revlog)
+            
+            let answeredAt = Date()
+            let timeSpentMs = max(
+                0,
+                Int((answeredAt.timeIntervalSince(questionShownAt ?? answeredAt)) * 1000.0)
+            )
+            let syncEvent = SyncReviewEvent(
+                id: UUID(),
+                cardId: question.id,
+                selectedOptionID: selectedOptionIDForCurrentSelection(),
+                rating: mapGradeToReviewRating(grade),
+                answeredAt: answeredAt,
+                timeSpentMs: timeSpentMs,
+                createdAt: answeredAt
+            )
+            try DatabaseService.shared.enqueueReviewEvent(syncEvent)
             
         } catch {
             print("❌ SQLite Save error: \(error)")
@@ -264,5 +257,39 @@ class QuestionViewModel {
         selectedOptionIndex = nil
         isCorrect = nil
         showExplanation = false
+    }
+    
+    private func prepareShuffledOptions(for question: Question) {
+        if !question.answerOptions.isEmpty {
+            shuffledAnswerOptions = question.answerOptions.shuffled()
+            shuffledOptions = shuffledAnswerOptions.map(\.text)
+        } else {
+            shuffledAnswerOptions = question.options.enumerated().map { idx, option in
+                AnswerOption(
+                    text: option,
+                    isCorrect: idx == question.correctAnswerIndex,
+                    order: idx
+                )
+            }.shuffled()
+            shuffledOptions = shuffledAnswerOptions.map(\.text)
+        }
+        questionShownAt = Date()
+    }
+    
+    private func selectedOptionIDForCurrentSelection() -> UUID? {
+        guard let index = selectedOptionIndex,
+              shuffledAnswerOptions.indices.contains(index) else {
+            return nil
+        }
+        return shuffledAnswerOptions[index].id
+    }
+    
+    private func mapGradeToReviewRating(_ grade: FSRSScheduler.Grade) -> ReviewRating {
+        switch grade {
+        case .again: return .again
+        case .hard: return .hard
+        case .good: return .good
+        case .easy: return .easy
+        }
     }
 }

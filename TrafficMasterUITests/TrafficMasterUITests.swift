@@ -10,7 +10,7 @@ final class TrafficMasterUITests: XCTestCase {
     }
 
     @MainActor
-    func testFullMarathonFlow() throws {
+    func testFullStudyFlow() throws {
         let app = XCUIApplication()
         // Reset UserDefaults for a clean state in UI tests
         app.launchArguments.append("-resetData")
@@ -31,10 +31,10 @@ final class TrafficMasterUITests: XCTestCase {
         let homeTab = app.tabBars.buttons["Главная"]
         XCTAssertTrue(homeTab.waitForExistence(timeout: 15), "Главная вкладка не появилась")
         
-        // 2. Start Marathon Mode
-        let marathonButton = app.buttons.containing(.staticText, identifier: "Марафон режим").firstMatch
-        XCTAssertTrue(marathonButton.waitForExistence(timeout: 5), "Кнопка марафона не найдена")
-        marathonButton.tap()
+        // 2. Start daily study mode
+        let studyButton = app.buttons.containing(.staticText, identifier: "Продолжить обучение").firstMatch
+        XCTAssertTrue(studyButton.waitForExistence(timeout: 5), "Кнопка обучения не найдена")
+        studyButton.tap()
         
         // 3. Interact with the Question View
         // Wait for the first option to appear
@@ -59,11 +59,11 @@ final class TrafficMasterUITests: XCTestCase {
         // Verify we moved to the next question (the options should reload)
         XCTAssertTrue(firstOption.waitForExistence(timeout: 5), "Следующий вопрос не загрузился")
         
-        // Exit Marathon
+        // Exit Study
         app.buttons["Назад"].tap()
         app.alerts["Вы действительно хотите выйти?"].buttons["Выйти"].tap()
         
-        XCTAssertTrue(marathonButton.waitForExistence(timeout: 5), "Не вернулись на главный экран")
+        XCTAssertTrue(studyButton.waitForExistence(timeout: 5), "Не вернулись на главный экран")
     }
     
     @MainActor

@@ -14,8 +14,7 @@ struct QuestionView: View {
     @State private var showSavedToast = false
     
     var questions: [Question] = []
-    var isMarathonMode: Bool = false
-    var dailyLimit: Int = 20
+    var dailyLimit: Int = 34
     
     var body: some View {
         ZStack {
@@ -92,12 +91,7 @@ struct QuestionView: View {
             Button("Выйти", role: .destructive) { dismiss() }
         }
         .onAppear {
-            // Debug logging for marathon mode
-            if isMarathonMode {
-                print("🏃 Marathon Mode: Loading questions...")
-            }
-            
-            viewModel.loadQuestions(isMarathon: isMarathonMode, dailyNewLimit: dailyLimit)
+            viewModel.loadQuestions(dailyNewLimit: dailyLimit)
         }
     }
     
@@ -109,12 +103,10 @@ struct QuestionView: View {
                 .font(.system(size: 80))
                 .foregroundColor(.green)
             
-            Text(isMarathonMode ? "Марафон завершен!" : "Отличная работа!")
+            Text("Отличная работа!")
                 .font(.largeTitle.weight(.bold))
             
-            let msg = isMarathonMode ?
-                "Вы прошли порцию вопросов в этом режиме. Отличный результат для запоминания!" :
-                "На сегодня карточки для этого раздела закончились. Возвращайтесь позже."
+            let msg = "На сегодня карточки для этого раздела закончились. Возвращайтесь позже."
             
             Text(msg)
                 .font(.body)
@@ -123,36 +115,16 @@ struct QuestionView: View {
                 .padding(.horizontal, 40)
             
             VStack(spacing: 12) {
-                if isMarathonMode {
-                    Button(action: {
-                        Haptics.impact(.light)
-                        withAnimation {
-                            viewModel.loadMoreMarathonQuestions(count: dailyLimit)
-                        }
-                    }, label: {
-                        Text("Добавить еще \(dailyLimit) вопросов")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(
-                                LinearGradient(colors: [.orange, .pink], startPoint: .topLeading, endPoint: .bottomTrailing)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                            .shadow(color: .orange.opacity(0.3), radius: 8, x: 0, y: 4)
-                    })
-                }
-                
                 Button(action: {
                     Haptics.impact(.medium)
                     dismiss()
                 }, label: {
                     Text("Вернуться на главную")
                         .font(.headline)
-                        .foregroundColor(isMarathonMode ? .blue : .white)
+                        .foregroundColor(.white)
                         .padding()
                         .frame(maxWidth: .infinity)
-                        .background(isMarathonMode ? Color.blue.opacity(0.1) : Color.blue)
+                        .background(Color.blue)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                 })
             }
@@ -377,10 +349,6 @@ struct QuestionView: View {
                 .padding(.vertical, 6)
                 .background(Color.gray.opacity(0.1))
                 .clipShape(Capsule())
-            } else if isMarathonMode {
-                Text("МАРАФОН")
-                    .font(.system(.headline, design: .rounded, weight: .black))
-                    .foregroundColor(.orange)
             }
         }
     }
@@ -402,28 +370,26 @@ struct QuestionView: View {
     
     @ViewBuilder
     private var trailingToolbarContent: some View {
-        if !isMarathonMode {
-            HStack(spacing: 8) {
-                HStack(spacing: 4) {
-                    let totalTarget = viewModel.targetNewCards + viewModel.dueTodayCount
-                    Text("\(viewModel.learnedTodayCount)/\(totalTarget)")
-                        .font(.system(.subheadline, design: .rounded, weight: .bold))
-                        .foregroundColor(.primary)
-                }
-                
-                HStack(spacing: 4) {
-                    Image(systemName: "arrow.2.circlepath")
-                        .font(.caption2)
-                    Text("\(viewModel.dueTodayCount)")
-                        .font(.system(.subheadline, design: .rounded, weight: .bold))
-                }
-                .foregroundColor(.orange)
+        HStack(spacing: 8) {
+            HStack(spacing: 4) {
+                let totalTarget = viewModel.targetNewCards + viewModel.dueTodayCount
+                Text("\(viewModel.learnedTodayCount)/\(totalTarget)")
+                    .font(.system(.subheadline, design: .rounded, weight: .bold))
+                    .foregroundColor(.primary)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(Color.gray.opacity(0.1))
-            .clipShape(Capsule())
+            
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.2.circlepath")
+                    .font(.caption2)
+                Text("\(viewModel.dueTodayCount)")
+                    .font(.system(.subheadline, design: .rounded, weight: .bold))
+            }
+            .foregroundColor(.orange)
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Color.gray.opacity(0.1))
+        .clipShape(Capsule())
     }
     
     private func optionBackground(for index: Int) -> AnyShapeStyle {
@@ -505,9 +471,5 @@ extension UIColor {
 }
 
 #Preview {
-    QuestionView(questions: [], isMarathonMode: true)
-}
-
-#Preview("Standard") {
-    QuestionView(questions: [], isMarathonMode: false)
+    QuestionView(questions: [])
 }

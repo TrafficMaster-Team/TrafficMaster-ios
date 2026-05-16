@@ -17,14 +17,7 @@
     }
   },
   "testTargets" : [
-    {
-      "parallelizable" : true,
-      "target" : {
-        "containerPath" : "container:TrafficMaster.xcodeproj",
-        "identifier" : "F52B05C32F7D80FE00F0E036",
-        "name" : "TrafficMasterUITests"
-      }
-    }
+
   ],
   "version" : 1
 }

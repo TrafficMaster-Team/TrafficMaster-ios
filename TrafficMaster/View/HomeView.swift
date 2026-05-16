@@ -46,7 +46,7 @@ struct HomeView: View {
     @State private var viewModel = QuestionViewModel()
     @State private var dynamicSections: [LearningSection] = []
     @State private var currentStreak: Int = 0
-    @AppStorage("marathon_daily_limit") private var marathonDailyLimit: Int = 20
+    @AppStorage("daily_new_limit") private var dailyNewLimit: Int = 34
     @State private var isLoading = true
     
     var body: some View {
@@ -74,7 +74,7 @@ struct HomeView: View {
                             
                             limitPicker
                             
-                            MarathonButton(questions: viewModel.allQuestions, dailyLimit: marathonDailyLimit)
+                            DailyStudyButton(questions: viewModel.allQuestions, dailyLimit: dailyNewLimit)
                                 .padding(.horizontal, 20)
                                 .padding(.bottom, 20)
                             
@@ -91,7 +91,7 @@ struct HomeView: View {
         }
         .onAppear {
             currentStreak = ProgressTracker.shared.calculateStreak()
-            viewModel.loadQuestions(dailyNewLimit: marathonDailyLimit)
+            viewModel.loadQuestions(dailyNewLimit: dailyNewLimit)
             updateSections()
         }
         .onChange(of: viewModel.allQuestions) { _, _ in
@@ -105,11 +105,13 @@ struct HomeView: View {
                 .font(.system(.subheadline, design: .rounded, weight: .medium))
                 .foregroundColor(.secondary)
             Spacer()
-            Picker("Лимит", selection: $marathonDailyLimit) {
+            Picker("Лимит", selection: $dailyNewLimit) {
                 Text("10").tag(10)
                 Text("20").tag(20)
                 Text("30").tag(30)
+                Text("34").tag(34)
                 Text("50").tag(50)
+                Text("80").tag(80)
                 Text("100").tag(100)
             }
             .tint(.orange)
@@ -348,13 +350,13 @@ struct TopGamificationBar: View {
     }
 }
 
-struct MarathonButton: View {
+struct DailyStudyButton: View {
     let questions: [Question]
     let dailyLimit: Int
     
     var body: some View {
         let questionCount = questions.count
-        let destination = QuestionView(questions: questions, isMarathonMode: true, dailyLimit: dailyLimit)
+        let destination = QuestionView(questions: questions, dailyLimit: dailyLimit)
         
         NavigationLink(destination: destination) {
             HStack(spacing: 16) {
@@ -368,12 +370,12 @@ struct MarathonButton: View {
                         .foregroundColor(.white)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Марафон режим")
+                    Text("Продолжить обучение")
                         .font(.system(.headline, design: .rounded, weight: .bold))
                         .foregroundColor(.primary)
                     
                     if questionCount > 0 {
-                        Text("Учить порциями по \(dailyLimit) вопросов")
+                        Text("Сессия до 20 минут, новых: \(dailyLimit)")
                             .font(.system(.caption, design: .rounded, weight: .medium))
                             .foregroundColor(.secondary)
                     } else {

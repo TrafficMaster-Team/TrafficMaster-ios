@@ -7,13 +7,35 @@
 
 import Foundation
 
+struct AnswerOption: Codable, Identifiable, Equatable, Sendable {
+    var id: UUID
+    var text: String
+    var isCorrect: Bool?
+    var order: Int?
+
+    init(
+        id: UUID = UUID(),
+        text: String,
+        isCorrect: Bool? = nil,
+        order: Int? = nil
+    ) {
+        self.id = id
+        self.text = text
+        self.isCorrect = isCorrect
+        self.order = order
+    }
+}
+
 final class Question: Codable, Identifiable, Equatable, @unchecked Sendable {
     var id: UUID
     var text: String
     var options: [String]
+    var answerOptions: [AnswerOption]
     var correctAnswerIndex: Int
     var explanation: String?
     var imageName: String?
+    var backendCardID: UUID?
+    var backendDeckID: UUID?
 
     // Taxonomy
     var sectionTitle: String?
@@ -34,9 +56,12 @@ final class Question: Codable, Identifiable, Equatable, @unchecked Sendable {
         id: UUID = UUID(),
         text: String,
         options: [String],
+        answerOptions: [AnswerOption] = [],
         correctAnswerIndex: Int,
         explanation: String? = nil,
         imageName: String? = nil,
+        backendCardID: UUID? = nil,
+        backendDeckID: UUID? = nil,
         sectionTitle: String? = "Раздел 1",
         chapterTitle: String? = "Глава 1",
         stability: Double = 0.0,
@@ -50,9 +75,12 @@ final class Question: Codable, Identifiable, Equatable, @unchecked Sendable {
         self.id = id
         self.text = text
         self.options = options
+        self.answerOptions = answerOptions
         self.correctAnswerIndex = correctAnswerIndex
         self.explanation = explanation
         self.imageName = imageName
+        self.backendCardID = backendCardID
+        self.backendDeckID = backendDeckID
         self.sectionTitle = sectionTitle
         self.chapterTitle = chapterTitle
 
@@ -85,6 +113,16 @@ final class Question: Codable, Identifiable, Equatable, @unchecked Sendable {
         if repetitions < 0 { repetitions = 0 }
         if interval < 0 { interval = 1 }
         if easinessFactor < 1.3 { easinessFactor = 2.5 }
+        
+        // Ensure multiple-choice payload always exists for backend-compatible flow.
+        if answerOptions.isEmpty && !options.isEmpty {
+            answerOptions = options.enumerated().map { index, text in
+                AnswerOption(
+                    text: text,
+                    isCorrect: index == correctAnswerIndex,
+                    order: index
+                )
+            }
+        }
     }
 }
-

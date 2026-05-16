@@ -39,7 +39,9 @@ class FSRSScheduler {
     /// Grade for FSRS (binary system as per requirements)
     enum Grade: Int {
         case again = 1  // Wrong answer
-        case good = 3   // Correct answer
+        case hard = 2   // Correct, but uncertain / guessed
+        case good = 3   // Correct
+        case easy = 4   // Correct and easy recall
     }
     
     /// Result of reviewing a card
@@ -80,6 +82,22 @@ class FSRSScheduler {
                 stability: cardState.stability,
                 retrievability: retrievability
             )
+        } else if grade == .hard {
+            // Remembered with low confidence - modest progress
+            newDifficulty = max(1.0, cardState.difficulty + 0.2)
+            newStability = calculateHardStability(
+                stability: cardState.stability,
+                retrievability: retrievability,
+                difficulty: cardState.difficulty
+            )
+        } else if grade == .easy {
+            // Strong recall - accelerated progress
+            newDifficulty = max(1.0, cardState.difficulty - 0.3)
+            newStability = calculateEasyStability(
+                stability: cardState.stability,
+                retrievability: retrievability,
+                difficulty: cardState.difficulty
+            )
         } else {
             // Remembered the card - apply learning
             newDifficulty = max(1.0, cardState.difficulty - 0.1)
@@ -96,6 +114,7 @@ class FSRSScheduler {
         // Calculate next review date based on stability and desired retention
         let nextReviewDate = calculateNextReviewDate(
             stability: newStability,
+            grade: grade,
             from: reviewTime
         )
         
@@ -127,6 +146,7 @@ class FSRSScheduler {
         
         let nextReviewDate = calculateNextReviewDate(
             stability: initialStability,
+            grade: grade,
             from: reviewTime
         )
         
@@ -176,11 +196,33 @@ class FSRSScheduler {
         return stability * (1 + exp(w7) * difficultyFactor * stabilityFactor * retrievabilityFactor)
     }
     
+    private func calculateHardStability(stability: Double, retrievability: Double, difficulty: Double) -> Double {
+        let baseline = calculateRememberingStability(stability: stability, retrievability: retrievability, difficulty: difficulty)
+        return max(0.1, baseline * 0.65)
+    }
+    
+    private func calculateEasyStability(stability: Double, retrievability: Double, difficulty: Double) -> Double {
+        let baseline = calculateRememberingStability(stability: stability, retrievability: retrievability, difficulty: difficulty)
+        return max(0.1, baseline * 1.2)
+    }
+    
     /// I = S * ln(R) / ln(0.5)
     /// Calculate next interval in days from stability
-    private func calculateNextReviewDate(stability: Double, from date: Date) -> Date {
+    private func calculateNextReviewDate(stability: Double, grade: Grade, from date: Date) -> Date {
         // For 90% retention: interval ≈ stability * ln(0.9) / ln(0.5) ≈ stability * 0.152
-        let intervalDays = max(1, Int(round(stability * 0.152)))
+        let baseInterval = max(1, Int(round(stability * 0.152)))
+        let multiplier: Double
+        switch grade {
+        case .again:
+            multiplier = 1.0
+        case .hard:
+            multiplier = 0.75
+        case .good:
+            multiplier = 1.0
+        case .easy:
+            multiplier = 1.3
+        }
+        let intervalDays = max(1, Int(round(Double(baseInterval) * multiplier)))
         return Calendar.current.date(byAdding: .day, value: intervalDays, to: date) ?? date
     }
     

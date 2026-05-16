@@ -101,6 +101,13 @@ struct TrafficMasterApp: App {
                     let key = "\(cleanedText)|\(section)|\(chapter)"
                     
                     let cleanedOptions = importQ.options.map { cleanOptionText($0.replacingOccurrences(of: "\n", with: " ")) }
+                    let answerOptions = cleanedOptions.enumerated().map { idx, text in
+                        AnswerOption(
+                            text: text,
+                            isCorrect: idx == importQ.correctIndex,
+                            order: idx
+                        )
+                    }
 
                     var imageName: String?
                     if let img = importQ.image {
@@ -112,6 +119,7 @@ struct TrafficMasterApp: App {
                     if let existing = existingMap[key] {
                         // Update static content
                         existing.options = cleanedOptions
+                        existing.answerOptions = answerOptions
                         existing.correctAnswerIndex = importQ.correctIndex
                         existing.explanation = importQ.explanation?.replacingOccurrences(of: "\n", with: " ")
                         existing.imageName = imageName
@@ -124,6 +132,7 @@ struct TrafficMasterApp: App {
                         let newQuestion = Question(
                             text: cleanedText,
                             options: cleanedOptions,
+                            answerOptions: answerOptions,
                             correctAnswerIndex: importQ.correctIndex,
                             explanation: importQ.explanation?.replacingOccurrences(of: "\n", with: " "),
                             imageName: imageName,

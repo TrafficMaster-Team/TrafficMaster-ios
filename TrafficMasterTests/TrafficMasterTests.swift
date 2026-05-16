@@ -5,12 +5,9 @@ import Testing
 @MainActor
 struct QuestionViewModelTests {
 
-    @Test func loadQuestionsMarathonLimit() async throws {
-        UserDefaults.standard.removeObject(forKey: "marathon_session_ids")
+    @Test func loadQuestionsWithDailyLimit() async throws {
         let viewModel = QuestionViewModel()
-        let questions = (0..<50).map { Question(text: "Q\($0)", options: ["A"], correctAnswerIndex: 0) }
-        
-        viewModel.loadQuestions(isMarathon: true, dailyNewLimit: 10)
+        viewModel.loadQuestions(dailyNewLimit: 10)
         
         // Since we load from SQLite now in the actual app, this test might need a mocked DB.
         // For now, we just ensure it doesn't crash when called with empty DB.
@@ -29,6 +26,38 @@ struct QuestionViewModelTests {
         
         #expect(viewModel.isCorrect == true)
         #expect(viewModel.userAnswerIndex == correctIndex)
+        #expect(viewModel.showGuessedButton == true)
+    }
+    
+    @Test func guessedButtonVisibilityForWrongAnswer() async throws {
+        let viewModel = QuestionViewModel()
+        let question = Question(text: "Q1", options: ["A", "B"], correctAnswerIndex: 0)
+        viewModel.allQuestions = [question]
+        viewModel.currentQuestion = question
+        viewModel.shuffledOptions = ["A", "B"]
+        
+        viewModel.selectAnswer(index: 1)
+        
+        #expect(viewModel.isCorrect == false)
+        #expect(viewModel.showGuessedButton == false)
+    }
+    
+    @Test func markAsGuessedUsesAgainRating() async throws {
+        let viewModel = QuestionViewModel()
+        let question = Question(text: "Q1", options: ["A", "B"], correctAnswerIndex: 0)
+        question.repetitions = 3
+        question.difficulty = 4.0
+        
+        viewModel.allQuestions = [question]
+        viewModel.currentQuestion = question
+        viewModel.shuffledOptions = ["A", "B"]
+        
+        let correctIndex = viewModel.correctAnswerIndexInShuffled ?? 0
+        viewModel.selectAnswer(index: correctIndex)
+        viewModel.markAsGuessed()
+        
+        #expect(question.repetitions == 0)
+        #expect(question.difficulty > 4.0)
     }
 }
 
