@@ -112,14 +112,20 @@ class QuestionViewModel {
     
     private func setupStandardSession() {
         let now = Date()
-        let dueQuestions = allQuestions.filter { $0.repetitions > 0 && $0.nextReviewDate <= now }
-        let newQuestions = allQuestions.filter { $0.repetitions == 0 }.prefix(targetNewCards)
         
-        sessionCards = Array(dueQuestions) + Array(newQuestions)
+        // Continue-first strategy:
+        // 1) Learning continuation (seen at least once, but not graduated)
+        // 2) Due review cards
+        // 3) Brand-new unseen cards
+        let learningContinuation = allQuestions.filter { $0.seenAt != nil && $0.repetitions == 0 }
+        let dueReview = allQuestions.filter { $0.seenAt != nil && $0.repetitions > 0 && $0.nextReviewDate <= now }
+        let newUnseen = allQuestions.filter { $0.seenAt == nil }.prefix(targetNewCards)
+        
+        sessionCards = Array(learningContinuation) + Array(dueReview) + Array(newUnseen)
         sessionQueue = sessionCards
         sessionQueue.shuffle()
         
-        cardsToReviewCount = dueQuestions.count
+        cardsToReviewCount = learningContinuation.count + dueReview.count
         loadNextFromQueue()
     }
     

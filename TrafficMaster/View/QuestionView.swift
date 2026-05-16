@@ -11,7 +11,6 @@ struct QuestionView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = QuestionViewModel()
     @State private var showingExitAlert = false
-    @State private var showSavedToast = false
     
     var questions: [Question] = []
     var dailyLimit: Int = 34
@@ -48,25 +47,6 @@ struct QuestionView: View {
                 // Плавающие кнопки действий
                 if viewModel.userAnswerIndex != nil {
                     actionButtons
-                }
-                
-                // Индикатор сохранения
-                if showSavedToast {
-                    VStack {
-                        Spacer()
-                        HStack {
-                            Image(systemName: "icloud.and.arrow.down.fill")
-                            Text("Прогресс сохранен")
-                        }
-                        .font(.system(.caption, design: .rounded, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(Color.black.opacity(0.6))
-                        .clipShape(Capsule())
-                        .padding(.bottom, 120)
-                    }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
         }
@@ -280,7 +260,6 @@ struct QuestionView: View {
             Haptics.impact(.medium)
             withAnimation(.spring()) {
                 viewModel.markAsGuessed()
-                triggerSaveToast()
             }
         }, label: {
             Text("Ответил наугад 🤔")
@@ -303,7 +282,6 @@ struct QuestionView: View {
             Haptics.selection()
             withAnimation(.spring()) {
                 viewModel.continueToNext()
-                triggerSaveToast()
             }
         }, label: {
             Text("Дальше")
@@ -318,13 +296,6 @@ struct QuestionView: View {
                 .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
         })
         .buttonStyle(SquishyButtonStyle())
-    }
-    
-    private func triggerSaveToast() {
-        withAnimation { showSavedToast = true }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            withAnimation { showSavedToast = false }
-        }
     }
     
     private var principalToolbarContent: some View {
