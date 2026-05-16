@@ -225,8 +225,8 @@ struct QuestionView: View {
             
             HStack(spacing: 24) {
                 ankiCounterView(count: viewModel.blueCount, title: "Новые", color: .blue)
-                ankiCounterView(count: viewModel.yellowCount, title: "В изучении", color: .orange)
-                ankiCounterView(count: viewModel.greenCount, title: "Выучено", color: .green)
+                ankiCounterView(count: viewModel.yellowCount, title: "В изучении", color: .red)
+                ankiCounterView(count: viewModel.greenCount, title: "Закрепление", color: .green)
             }
         }
         .padding(.horizontal, 24)

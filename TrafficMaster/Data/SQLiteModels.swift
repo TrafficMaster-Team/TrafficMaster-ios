@@ -41,7 +41,7 @@ struct SyncReviewEvent: Codable, Identifiable, Sendable {
 // MARK: - Database Schema Constants
 
 enum DatabaseSchema {
-    static let version = 3 // v3: backend-ready schema (answer options + sync outbox + remote IDs)
+    static let version = 4 // v4: add seen_at for blue/red/green card tiers
     
     static let createQuestionsTable = """
     CREATE TABLE IF NOT EXISTS questions (
@@ -62,7 +62,8 @@ enum DatabaseSchema {
         next_review_date REAL NOT NULL,
         answer_options_json TEXT,
         backend_card_id TEXT,
-        backend_deck_id TEXT
+        backend_deck_id TEXT,
+        seen_at REAL
     )
     """
     

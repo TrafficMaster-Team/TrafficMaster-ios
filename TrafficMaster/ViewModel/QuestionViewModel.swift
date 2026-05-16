@@ -28,7 +28,6 @@ class QuestionViewModel {
     // Session Queue
     private var sessionQueue: [Question] = []
     private var sessionCards: [Question] = [] // Tracks the full batch for UI counters
-    private let masteryThreshold = 2
     
     // FSRS Scheduler (Domain Layer)
     private let fsrScheduler = FSRSScheduler()
@@ -66,9 +65,11 @@ class QuestionViewModel {
     }
     
     private func updateCounters() {
-        blueCount = sessionCards.filter { $0.repetitions == 0 }.count
-        yellowCount = sessionCards.filter { $0.repetitions > 0 && $0.repetitions < masteryThreshold }.count
-        greenCount = sessionCards.filter { $0.repetitions >= masteryThreshold }.count
+        // Anki-like tiers:
+        // Blue: never seen, Red: seen but not yet graduated, Green: review/strengthening
+        blueCount = sessionCards.filter { $0.seenAt == nil }.count
+        yellowCount = sessionCards.filter { $0.seenAt != nil && $0.repetitions == 0 }.count
+        greenCount = sessionCards.filter { $0.seenAt != nil && $0.repetitions > 0 }.count
     }
     
     func loadQuestions(dailyNewLimit: Int = 34, isExamMode: Bool = false) {
@@ -260,6 +261,11 @@ class QuestionViewModel {
     }
     
     private func prepareShuffledOptions(for question: Question) {
+        if question.seenAt == nil {
+            question.seenAt = Date()
+            try? DatabaseService.shared.saveQuestion(question)
+        }
+        
         if !question.answerOptions.isEmpty {
             shuffledAnswerOptions = question.answerOptions.shuffled()
             shuffledOptions = shuffledAnswerOptions.map(\.text)
@@ -274,6 +280,7 @@ class QuestionViewModel {
             shuffledOptions = shuffledAnswerOptions.map(\.text)
         }
         questionShownAt = Date()
+        updateCounters()
     }
     
     private func selectedOptionIDForCurrentSelection() -> UUID? {

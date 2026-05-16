@@ -37,6 +37,7 @@ class DatabaseService {
         case answerOptionsJSON
         case backendCardID
         case backendDeckID
+        case seenAt
     }
 
     private init(databaseName: String = "trafficmaster.v2.db") {
@@ -117,8 +118,8 @@ class DatabaseService {
     func saveQuestion(_ q: Question) throws {
         let query = """
         INSERT OR REPLACE INTO questions 
-        (id, text, options, correct_answer_index, explanation, image_name, section_title, chapter_title, stability, difficulty, retrievability, repetitions, interval, easiness_factor, next_review_date, answer_options_json, backend_card_id, backend_deck_id) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (id, text, options, correct_answer_index, explanation, image_name, section_title, chapter_title, stability, difficulty, retrievability, repetitions, interval, easiness_factor, next_review_date, answer_options_json, backend_card_id, backend_deck_id, seen_at) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         
         var statement: OpaquePointer?
@@ -189,6 +190,12 @@ class DatabaseService {
             sqlite3_bind_text(statement, 18, backendDeckID.uuidString, -1, Self.SQLITE_TRANSIENT)
         } else {
             sqlite3_bind_null(statement, 18)
+        }
+        
+        if let seenAt = q.seenAt {
+            sqlite3_bind_double(statement, 19, seenAt.timeIntervalSince1970)
+        } else {
+            sqlite3_bind_null(statement, 19)
         }
         
         guard sqlite3_step(statement) == SQLITE_DONE else {
@@ -470,6 +477,9 @@ class DatabaseService {
             .flatMap { UUID(uuidString: String(cString: $0)) }
         let backendDeckID = sqlite3_column_text(statement, Int32(QuestionColumn.backendDeckID.rawValue))
             .flatMap { UUID(uuidString: String(cString: $0)) }
+        let seenAt = sqlite3_column_type(statement, Int32(QuestionColumn.seenAt.rawValue)) == SQLITE_NULL
+            ? nil
+            : Date(timeIntervalSince1970: sqlite3_column_double(statement, Int32(QuestionColumn.seenAt.rawValue)))
 
         let question = Question(
             id: id,
@@ -481,6 +491,7 @@ class DatabaseService {
             imageName: imageName,
             backendCardID: backendCardID,
             backendDeckID: backendDeckID,
+            seenAt: seenAt,
             sectionTitle: sectionTitle,
             chapterTitle: chapterTitle,
             stability: stability,
@@ -500,6 +511,7 @@ class DatabaseService {
         try ensureQuestionColumnExists("answer_options_json", type: "TEXT")
         try ensureQuestionColumnExists("backend_card_id", type: "TEXT")
         try ensureQuestionColumnExists("backend_deck_id", type: "TEXT")
+        try ensureQuestionColumnExists("seen_at", type: "REAL")
     }
     
     private func ensureQuestionColumnExists(_ name: String, type: String) throws {

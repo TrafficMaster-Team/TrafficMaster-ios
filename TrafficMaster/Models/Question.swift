@@ -36,6 +36,7 @@ final class Question: Codable, Identifiable, Equatable, @unchecked Sendable {
     var imageName: String?
     var backendCardID: UUID?
     var backendDeckID: UUID?
+    var seenAt: Date?
 
     // Taxonomy
     var sectionTitle: String?
@@ -62,6 +63,7 @@ final class Question: Codable, Identifiable, Equatable, @unchecked Sendable {
         imageName: String? = nil,
         backendCardID: UUID? = nil,
         backendDeckID: UUID? = nil,
+        seenAt: Date? = nil,
         sectionTitle: String? = "Раздел 1",
         chapterTitle: String? = "Глава 1",
         stability: Double = 0.0,
@@ -81,6 +83,7 @@ final class Question: Codable, Identifiable, Equatable, @unchecked Sendable {
         self.imageName = imageName
         self.backendCardID = backendCardID
         self.backendDeckID = backendDeckID
+        self.seenAt = seenAt
         self.sectionTitle = sectionTitle
         self.chapterTitle = chapterTitle
 
