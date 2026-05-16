@@ -18,8 +18,7 @@ struct QuestionView: View {
     
     var body: some View {
         ZStack {
-            // Liquid Glass Background
-            MeshGradientBackground()
+            Color(UIColor.systemGroupedBackground)
                 .ignoresSafeArea()
             
             if viewModel.currentQuestion == nil {
@@ -208,8 +207,7 @@ struct QuestionView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(.white.opacity(0.4), lineWidth: 1)
-                            .blendMode(.overlay)
+                            .stroke(Color.gray.opacity(0.12), lineWidth: 1)
                     )
                 })
                 .disabled(viewModel.userAnswerIndex != nil)
@@ -395,16 +393,12 @@ struct QuestionView: View {
     private func optionBackground(for index: Int) -> AnyShapeStyle {
         if let userIndex = viewModel.userAnswerIndex {
             if index == viewModel.correctAnswerIndexInShuffled {
-                let color = Color.green.opacity(0.2)
-                let shadow = ShadowStyle.inner(color: .green.opacity(0.5), radius: 5)
-                return AnyShapeStyle(color.shadow(shadow))
+                return AnyShapeStyle(Color.green.opacity(0.14))
             } else if index == userIndex && viewModel.isCorrect == false {
-                let color = Color.red.opacity(0.2)
-                let shadow = ShadowStyle.inner(color: .red.opacity(0.5), radius: 5)
-                return AnyShapeStyle(color.shadow(shadow))
+                return AnyShapeStyle(Color.red.opacity(0.14))
             }
         }
-        return AnyShapeStyle(.ultraThinMaterial)
+        return AnyShapeStyle(Color(UIColor.secondarySystemBackground))
     }
 }
 
