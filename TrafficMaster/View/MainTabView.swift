@@ -35,16 +35,7 @@ struct MainTabView: View {
         }
         .tint(.blue)
         .toolbarBackground(.visible, for: .tabBar)
-        .toolbarBackground(Color(uiColor: .secondarySystemGroupedBackground), for: .tabBar)
-        .overlay(alignment: .bottom) {
-            LinearGradient(
-                colors: [Color.black.opacity(0.06), .clear],
-                startPoint: .bottom,
-                endPoint: .top
-            )
-            .frame(height: 22)
-            .allowsHitTesting(false)
-        }
+        .toolbarBackground(.ultraThinMaterial, for: .tabBar)
     }
 }
 

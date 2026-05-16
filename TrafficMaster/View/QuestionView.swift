@@ -17,7 +17,14 @@ struct QuestionView: View {
     
     var body: some View {
         ZStack {
-            Color(UIColor.systemGroupedBackground)
+            LinearGradient(
+                colors: [
+                    Color(uiColor: .systemBackground),
+                    Color(uiColor: .secondarySystemGroupedBackground)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
                 .ignoresSafeArea()
             
             if viewModel.currentQuestion == nil {
@@ -41,6 +48,7 @@ struct QuestionView: View {
                             // Пространство под плавающие кнопки
                             Color.clear.frame(height: 200)
                         }
+                        .safeAreaPadding(.top, 20)
                     }
                 }
                 
@@ -50,15 +58,13 @@ struct QuestionView: View {
                 }
             }
         }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbarBackground(Color(uiColor: .systemGroupedBackground), for: .navigationBar)
+        .navigationTitle(viewModel.currentQuestion?.chapterTitle ?? "Обучение")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbarRole(.editor)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
-            ToolbarItem(placement: .principal) {
-                principalToolbarContent
-            }
             ToolbarItem(placement: .topBarLeading) {
                 leadingToolbarContent
             }
@@ -241,14 +247,7 @@ struct QuestionView: View {
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 20)
-            .background(
-                LinearGradient(
-                    colors: [.clear, UIColor.systemBackground.color.opacity(0.9)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-            )
+            .background(Color.clear)
         }
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }
@@ -287,37 +286,11 @@ struct QuestionView: View {
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
-                .background(
-                    LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing)
-                )
+                .background(Color.accentColor)
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
+                .shadow(color: Color.accentColor.opacity(0.25), radius: 8, x: 0, y: 4)
         })
         .buttonStyle(SquishyButtonStyle())
-    }
-    
-    private var principalToolbarContent: some View {
-        Group {
-            if let question = viewModel.currentQuestion {
-                VStack(spacing: 2) {
-                    Text(question.sectionTitle ?? "Раздел")
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundColor(.secondary)
-                        .textCase(.uppercase)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    Text(question.chapterTitle ?? "Глава")
-                        .font(.system(size: 12, weight: .black, design: .rounded))
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 6)
-                .background(Color.gray.opacity(0.1))
-                .clipShape(Capsule())
-            }
-        }
     }
     
     private var leadingToolbarContent: some View {
@@ -325,13 +298,16 @@ struct QuestionView: View {
             Haptics.selection()
             showingExitAlert = true
         }, label: {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 17, weight: .semibold))
-                .frame(width: 36, height: 36)
-                .background(Color(uiColor: .secondarySystemGroupedBackground))
-                .clipShape(Circle())
-            .foregroundColor(.primary)
+            ZStack {
+                Circle()
+                    .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                    .frame(width: 36, height: 36)
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.primary)
+            }
         })
+        .buttonStyle(.plain)
     }
     
     private func optionBackground(for index: Int) -> AnyShapeStyle {
