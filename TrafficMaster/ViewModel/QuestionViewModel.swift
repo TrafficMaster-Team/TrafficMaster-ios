@@ -46,6 +46,14 @@ class QuestionViewModel {
         return allQuestions.filter { $0.repetitions > 0 && $0.nextReviewDate <= now }.count
     }
     
+    var introducedTodayCount: Int {
+        let calendar = Calendar.current
+        return allQuestions.filter { question in
+            guard let seenAt = question.seenAt else { return false }
+            return calendar.isDateInToday(seenAt)
+        }.count
+    }
+    
     var correctAnswerIndexInShuffled: Int? {
         guard let question = currentQuestion else { return nil }
         if let explicitIndex = shuffledAnswerOptions.firstIndex(where: { $0.isCorrect == true }) {
@@ -119,7 +127,11 @@ class QuestionViewModel {
         // 3) Brand-new unseen cards
         let learningContinuation = allQuestions.filter { $0.seenAt != nil && $0.repetitions == 0 }
         let dueReview = allQuestions.filter { $0.seenAt != nil && $0.repetitions > 0 && $0.nextReviewDate <= now }
-        let newUnseen = allQuestions.filter { $0.seenAt == nil }.prefix(targetNewCards)
+        
+        // Hard daily cap for new cards:
+        // if user already introduced N new cards today, do not exceed targetNewCards.
+        let remainingNewToday = max(0, targetNewCards - introducedTodayCount)
+        let newUnseen = allQuestions.filter { $0.seenAt == nil }.prefix(remainingNewToday)
         
         sessionCards = Array(learningContinuation) + Array(dueReview) + Array(newUnseen)
         sessionQueue = sessionCards

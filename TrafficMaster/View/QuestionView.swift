@@ -51,7 +51,8 @@ struct QuestionView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarBackground(Color(uiColor: .systemGroupedBackground), for: .navigationBar)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
@@ -60,9 +61,6 @@ struct QuestionView: View {
             }
             ToolbarItem(placement: .topBarLeading) {
                 leadingToolbarContent
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                trailingToolbarContent
             }
         }
         .alert("Вы действительно хотите выйти?", isPresented: $showingExitAlert) {
@@ -327,38 +325,13 @@ struct QuestionView: View {
             Haptics.selection()
             showingExitAlert = true
         }, label: {
-            HStack(spacing: 6) {
-                Image(systemName: "chevron.left")
-                    .font(.body.weight(.semibold))
-                Text("Назад")
-                    .font(.body)
-            }
+            Image(systemName: "chevron.left")
+                .font(.system(size: 17, weight: .semibold))
+                .frame(width: 36, height: 36)
+                .background(Color(uiColor: .secondarySystemGroupedBackground))
+                .clipShape(Circle())
             .foregroundColor(.primary)
         })
-    }
-    
-    @ViewBuilder
-    private var trailingToolbarContent: some View {
-        HStack(spacing: 8) {
-            HStack(spacing: 4) {
-                let totalTarget = viewModel.targetNewCards + viewModel.dueTodayCount
-                Text("\(viewModel.learnedTodayCount)/\(totalTarget)")
-                    .font(.system(.subheadline, design: .rounded, weight: .bold))
-                    .foregroundColor(.primary)
-            }
-            
-            HStack(spacing: 4) {
-                Image(systemName: "arrow.2.circlepath")
-                    .font(.caption2)
-                Text("\(viewModel.dueTodayCount)")
-                    .font(.system(.subheadline, design: .rounded, weight: .bold))
-            }
-            .foregroundColor(.orange)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(Color.gray.opacity(0.1))
-        .clipShape(Capsule())
     }
     
     private func optionBackground(for index: Int) -> AnyShapeStyle {
