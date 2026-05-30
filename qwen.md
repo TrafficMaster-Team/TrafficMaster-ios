@@ -236,3 +236,6 @@
 - [swift-fsrs (4rays)](https://github.com/4rays/swift-fsrs)
 - [GRDB.swift](https://github.com/groue/GRDB.swift)
 - [Anki FSRS Documentation](https://docs.ankiweb.net/fsrs.html)
+# Важно: документ устарел по алгоритму
+
+Проект сменил направление: MVP должен использовать SuperMemo 2 / SM-2 и повторять backend-логику `CardProgressService`. Разделы ниже про FSRS оставлены как историческая справка и не являются актуальным планом разработки.

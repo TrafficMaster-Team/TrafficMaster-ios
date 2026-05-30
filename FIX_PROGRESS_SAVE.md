@@ -9,7 +9,9 @@
 - Кнопка остаётся жёлтой (current), а не зелёной (completed)
 
 **Причина:**
-В `QuestionViewModel.applyFSRSRating()` не увеличивался `question.repetitions` при правильном ответе!
+В старом `QuestionViewModel.applyFSRSRating()` не увеличивался `question.repetitions` при правильном ответе.
+
+Актуальная реализация переведена на `applySM2Rating()` и должна повторять backend-логику SuperMemo 2, где `repetitions` меняет сам scheduler вместе с `state`, `interval`, `ease_factor` и `next_review_at`.
 
 ```swift
 // БЫЛО - НЕ РАБОТАЛО

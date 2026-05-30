@@ -9,7 +9,7 @@ values on mandatory destination attribute
 entity=Question, attribute=difficulty
 ```
 
-**Причина:** На устройстве есть старая версия базы данных без полей FSRS (`difficulty`, `stability`, `retrievability`).
+**Причина:** На устройстве есть старая версия базы данных без старых полей памяти (`difficulty`, `stability`, `retrievability`) и/или без новых backend-совместимых SM-2 полей (`sm2_state`, `backend_card_progress_id`).
 
 ---
 
@@ -67,7 +67,7 @@ do {
 
 ### `Question.swift`
 
-Добавлены default значения для FSRS полей:
+Добавлены default значения для legacy-полей и backend-совместимых SM-2 полей:
 
 ```swift
 self.stability = 0.0
@@ -116,8 +116,8 @@ func validateAndFixDefaults() {
 | Версия | Изменения |
 |---|---|
 | v1-v3 | SM-2 только (repetitions, interval, easinessFactor) |
-| v4 | Добавлены FSRS поля (stability, difficulty, retrievability) |
-| **v5** | **Default значения для FSRS + валидация** |
+| v4 | Добавлены legacy-поля памяти (stability, difficulty, retrievability) |
+| **v5** | **Backend SM-2 alignment: sm2_state + backend_card_progress_id** |
 
 ---
 
@@ -126,7 +126,7 @@ func validateAndFixDefaults() {
 После исправления:
 - ✅ Приложение запускается без ошибок
 - ✅ Все 3000 вопросов загружаются
-- ✅ FSRS алгоритм работает корректно
+- ✅ SM-2 алгоритм работает корректно
 - ✅ Марафон и экзамен режимы доступны
 
 **Устанавливайте и тестируйте!** 🎉

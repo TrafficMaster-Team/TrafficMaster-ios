@@ -15,7 +15,7 @@ class DatabaseService {
 
     private var db: OpaquePointer?
     private let dbPath: String
-    private static let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+    private static let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
     // MARK: - Column Index Constants (must match CREATE TABLE column order)
     private enum QuestionColumn: Int {
@@ -37,6 +37,8 @@ class DatabaseService {
         case answerOptionsJSON
         case backendCardID
         case backendDeckID
+        case backendCardProgressID
+        case sm2State
         case seenAt
     }
 
@@ -117,9 +119,12 @@ class DatabaseService {
     
     func saveQuestion(_ q: Question) throws {
         let query = """
-        INSERT OR REPLACE INTO questions 
-        (id, text, options, correct_answer_index, explanation, image_name, section_title, chapter_title, stability, difficulty, retrievability, repetitions, interval, easiness_factor, next_review_date, answer_options_json, backend_card_id, backend_deck_id, seen_at) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT OR REPLACE INTO questions (
+            id, text, options, correct_answer_index, explanation, image_name,
+            section_title, chapter_title, stability, difficulty, retrievability,
+            repetitions, interval, easiness_factor, next_review_date, answer_options_json,
+            backend_card_id, backend_deck_id, backend_card_progress_id, sm2_state, seen_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         
         var statement: OpaquePointer?
@@ -127,37 +132,37 @@ class DatabaseService {
             throw DatabaseError.prepareFailed(getErrorMessage())
         }
         
-        sqlite3_bind_text(statement, 1, q.id.uuidString, -1, Self.SQLITE_TRANSIENT)
-        sqlite3_bind_text(statement, 2, q.text, -1, Self.SQLITE_TRANSIENT)
+        sqlite3_bind_text(statement, 1, q.id.uuidString, -1, Self.sqliteTransient)
+        sqlite3_bind_text(statement, 2, q.text, -1, Self.sqliteTransient)
 
         let optionsData = try JSONEncoder().encode(q.options)
         guard let optionsStr = String(data: optionsData, encoding: .utf8) else {
             throw DatabaseError.executeFailed("Failed to encode options as UTF-8")
         }
-        sqlite3_bind_text(statement, 3, optionsStr, -1, Self.SQLITE_TRANSIENT)
+        sqlite3_bind_text(statement, 3, optionsStr, -1, Self.sqliteTransient)
         
         sqlite3_bind_int(statement, 4, Int32(q.correctAnswerIndex))
         
         if let explanation = q.explanation {
-            sqlite3_bind_text(statement, 5, explanation, -1, Self.SQLITE_TRANSIENT)
+            sqlite3_bind_text(statement, 5, explanation, -1, Self.sqliteTransient)
         } else {
             sqlite3_bind_null(statement, 5)
         }
 
         if let imageName = q.imageName {
-            sqlite3_bind_text(statement, 6, imageName, -1, Self.SQLITE_TRANSIENT)
+            sqlite3_bind_text(statement, 6, imageName, -1, Self.sqliteTransient)
         } else {
             sqlite3_bind_null(statement, 6)
         }
 
         if let st = q.sectionTitle {
-            sqlite3_bind_text(statement, 7, st, -1, Self.SQLITE_TRANSIENT)
+            sqlite3_bind_text(statement, 7, st, -1, Self.sqliteTransient)
         } else {
             sqlite3_bind_null(statement, 7)
         }
 
         if let ct = q.chapterTitle {
-            sqlite3_bind_text(statement, 8, ct, -1, Self.SQLITE_TRANSIENT)
+            sqlite3_bind_text(statement, 8, ct, -1, Self.sqliteTransient)
         } else {
             sqlite3_bind_null(statement, 8)
         }
@@ -175,27 +180,35 @@ class DatabaseService {
             guard let answerOptionsJSON = String(data: answerOptionsData, encoding: .utf8) else {
                 throw DatabaseError.executeFailed("Failed to encode answer options as UTF-8")
             }
-            sqlite3_bind_text(statement, 16, answerOptionsJSON, -1, Self.SQLITE_TRANSIENT)
+            sqlite3_bind_text(statement, 16, answerOptionsJSON, -1, Self.sqliteTransient)
         } else {
             sqlite3_bind_null(statement, 16)
         }
         
         if let backendCardID = q.backendCardID {
-            sqlite3_bind_text(statement, 17, backendCardID.uuidString, -1, Self.SQLITE_TRANSIENT)
+            sqlite3_bind_text(statement, 17, backendCardID.uuidString, -1, Self.sqliteTransient)
         } else {
             sqlite3_bind_null(statement, 17)
         }
         
         if let backendDeckID = q.backendDeckID {
-            sqlite3_bind_text(statement, 18, backendDeckID.uuidString, -1, Self.SQLITE_TRANSIENT)
+            sqlite3_bind_text(statement, 18, backendDeckID.uuidString, -1, Self.sqliteTransient)
         } else {
             sqlite3_bind_null(statement, 18)
         }
-        
-        if let seenAt = q.seenAt {
-            sqlite3_bind_double(statement, 19, seenAt.timeIntervalSince1970)
+
+        if let backendCardProgressID = q.backendCardProgressID {
+            sqlite3_bind_text(statement, 19, backendCardProgressID.uuidString, -1, Self.sqliteTransient)
         } else {
             sqlite3_bind_null(statement, 19)
+        }
+
+        sqlite3_bind_text(statement, 20, q.sm2State.rawValue, -1, Self.sqliteTransient)
+        
+        if let seenAt = q.seenAt {
+            sqlite3_bind_double(statement, 21, seenAt.timeIntervalSince1970)
+        } else {
+            sqlite3_bind_null(statement, 21)
         }
         
         guard sqlite3_step(statement) == SQLITE_DONE else {
@@ -259,8 +272,8 @@ class DatabaseService {
             throw DatabaseError.prepareFailed(getErrorMessage())
         }
         
-        sqlite3_bind_text(statement, 1, revlog.id.uuidString, -1, Self.SQLITE_TRANSIENT)
-        sqlite3_bind_text(statement, 2, revlog.cardId.uuidString, -1, Self.SQLITE_TRANSIENT)
+        sqlite3_bind_text(statement, 1, revlog.id.uuidString, -1, Self.sqliteTransient)
+        sqlite3_bind_text(statement, 2, revlog.cardId.uuidString, -1, Self.sqliteTransient)
         sqlite3_bind_double(statement, 3, revlog.reviewDatetime.timeIntervalSince1970)
         sqlite3_bind_int(statement, 4, Int32(revlog.grade))
         sqlite3_bind_int(statement, 5, Int32(revlog.timeTaken))
@@ -290,11 +303,11 @@ class DatabaseService {
             throw DatabaseError.prepareFailed(getErrorMessage())
         }
         
-        sqlite3_bind_text(statement, 1, event.id.uuidString, -1, Self.SQLITE_TRANSIENT)
-        sqlite3_bind_text(statement, 2, event.cardId.uuidString, -1, Self.SQLITE_TRANSIENT)
+        sqlite3_bind_text(statement, 1, event.id.uuidString, -1, Self.sqliteTransient)
+        sqlite3_bind_text(statement, 2, event.cardId.uuidString, -1, Self.sqliteTransient)
         
         if let selectedOptionID = event.selectedOptionID {
-            sqlite3_bind_text(statement, 3, selectedOptionID.uuidString, -1, Self.SQLITE_TRANSIENT)
+            sqlite3_bind_text(statement, 3, selectedOptionID.uuidString, -1, Self.sqliteTransient)
         } else {
             sqlite3_bind_null(statement, 3)
         }
@@ -376,7 +389,7 @@ class DatabaseService {
         
         sqlite3_bind_double(statement, 1, Date().timeIntervalSince1970)
         for (index, id) in eventIDs.enumerated() {
-            sqlite3_bind_text(statement, Int32(index + 2), id.uuidString, -1, Self.SQLITE_TRANSIENT)
+            sqlite3_bind_text(statement, Int32(index + 2), id.uuidString, -1, Self.sqliteTransient)
         }
         
         guard sqlite3_step(statement) == SQLITE_DONE else {
@@ -477,6 +490,11 @@ class DatabaseService {
             .flatMap { UUID(uuidString: String(cString: $0)) }
         let backendDeckID = sqlite3_column_text(statement, Int32(QuestionColumn.backendDeckID.rawValue))
             .flatMap { UUID(uuidString: String(cString: $0)) }
+        let backendCardProgressID = sqlite3_column_text(statement, Int32(QuestionColumn.backendCardProgressID.rawValue))
+            .flatMap { UUID(uuidString: String(cString: $0)) }
+        let sm2StateRaw = sqlite3_column_text(statement, Int32(QuestionColumn.sm2State.rawValue))
+            .map { String(cString: $0) }
+        let sm2State = sm2StateRaw.flatMap(SM2CardState.init(rawValue:)) ?? .new
         let seenAt = sqlite3_column_type(statement, Int32(QuestionColumn.seenAt.rawValue)) == SQLITE_NULL
             ? nil
             : Date(timeIntervalSince1970: sqlite3_column_double(statement, Int32(QuestionColumn.seenAt.rawValue)))
@@ -491,18 +509,20 @@ class DatabaseService {
             imageName: imageName,
             backendCardID: backendCardID,
             backendDeckID: backendDeckID,
+            backendCardProgressID: backendCardProgressID,
             seenAt: seenAt,
             sectionTitle: sectionTitle,
             chapterTitle: chapterTitle,
-            stability: stability,
-            difficulty: difficulty,
-            retrievability: retrievability,
+            sm2State: sm2State,
             repetitions: repetitions,
             interval: interval,
             easinessFactor: easinessFactor,
-            nextReviewDate: nextReviewDate
+            nextReviewDate: nextReviewDate,
+            stability: stability,
+            difficulty: difficulty,
+            retrievability: retrievability
         )
-        // Валидация FSRS/SM-2 значений после загрузки из БД
+        // Валидация SM-2 значений после загрузки из БД
         question.validateAndFixDefaults()
         return question
     }
@@ -511,6 +531,8 @@ class DatabaseService {
         try ensureQuestionColumnExists("answer_options_json", type: "TEXT")
         try ensureQuestionColumnExists("backend_card_id", type: "TEXT")
         try ensureQuestionColumnExists("backend_deck_id", type: "TEXT")
+        try ensureQuestionColumnExists("backend_card_progress_id", type: "TEXT")
+        try ensureQuestionColumnExists("sm2_state", type: "TEXT NOT NULL DEFAULT 'new'")
         try ensureQuestionColumnExists("seen_at", type: "REAL")
     }
     

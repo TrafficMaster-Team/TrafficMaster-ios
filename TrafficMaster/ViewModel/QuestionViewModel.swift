@@ -29,8 +29,8 @@ class QuestionViewModel {
     private var sessionQueue: [Question] = []
     private var sessionCards: [Question] = [] // Tracks the full batch for UI counters
     
-    // FSRS Scheduler (Domain Layer)
-    private let fsrScheduler = FSRSScheduler()
+    // SM-2 Scheduler (Domain Layer), mirrored from backend CardProgressService.
+    private let sm2Scheduler = SM2Scheduler()
     
     // Exam Mode
     private var examQueue: [Question] = []
@@ -43,7 +43,7 @@ class QuestionViewModel {
     
     var dueTodayCount: Int {
         let now = Date()
-        return allQuestions.filter { $0.repetitions > 0 && $0.nextReviewDate <= now }.count
+        return allQuestions.filter { $0.sm2State != .new && $0.nextReviewDate <= now }.count
     }
     
     var introducedTodayCount: Int {
@@ -76,8 +76,8 @@ class QuestionViewModel {
         // Anki-like tiers:
         // Blue: never seen, Red: seen but not yet graduated, Green: review/strengthening
         blueCount = sessionCards.filter { $0.seenAt == nil }.count
-        yellowCount = sessionCards.filter { $0.seenAt != nil && $0.repetitions == 0 }.count
-        greenCount = sessionCards.filter { $0.seenAt != nil && $0.repetitions > 0 }.count
+        yellowCount = sessionCards.filter { $0.seenAt != nil && $0.sm2State != .review }.count
+        greenCount = sessionCards.filter { $0.seenAt != nil && $0.sm2State == .review }.count
     }
     
     func loadQuestions(dailyNewLimit: Int = 34, isExamMode: Bool = false) {
@@ -125,8 +125,10 @@ class QuestionViewModel {
         // 1) Learning continuation (seen at least once, but not graduated)
         // 2) Due review cards
         // 3) Brand-new unseen cards
-        let learningContinuation = allQuestions.filter { $0.seenAt != nil && $0.repetitions == 0 }
-        let dueReview = allQuestions.filter { $0.seenAt != nil && $0.repetitions > 0 && $0.nextReviewDate <= now }
+        let learningContinuation = allQuestions.filter {
+            $0.seenAt != nil && ($0.sm2State == .learning || $0.sm2State == .relearning) && $0.nextReviewDate <= now
+        }
+        let dueReview = allQuestions.filter { $0.seenAt != nil && $0.sm2State == .review && $0.nextReviewDate <= now }
         
         // Hard daily cap for new cards:
         // if user already introduced N new cards today, do not exceed targetNewCards.
@@ -167,17 +169,17 @@ class QuestionViewModel {
     func continueToNext() {
         guard currentQuestion != nil, let isCorrect = isCorrect else { return }
         if isCorrect == true {
-            applyFSRSRating(grade: .good)
+            applySM2Rating(grade: .good)
         } else {
-            applyFSRSRating(grade: .again)
+            applySM2Rating(grade: .again)
         }
     }
 
     func markAsGuessed() {
-        applyFSRSRating(grade: .again)
+        applySM2Rating(grade: .again)
     }
 
-    private func applyFSRSRating(grade: FSRSScheduler.Grade) {
+    private func applySM2Rating(grade: SM2Scheduler.Grade) {
         guard let question = currentQuestion else { return }
 
         if isExamMode {
@@ -185,57 +187,45 @@ class QuestionViewModel {
             return
         }
 
-        let cardState = FSRSScheduler.CardState(
-            stability: question.stability,
-            difficulty: question.difficulty,
-            lastReviewDate: question.nextReviewDate,
-            dueDate: question.nextReviewDate
+        let cardState = SM2Scheduler.CardState(
+            state: question.sm2State,
+            easeFactor: question.easinessFactor,
+            interval: question.interval,
+            repetitions: question.repetitions,
+            nextReviewAt: question.nextReviewDate
         )
 
-        let result = fsrScheduler.reviewCard(cardState: cardState, grade: grade)
+        let result = sm2Scheduler.reviewCard(cardState: cardState, grade: grade)
 
-        question.stability = result.stability
-        question.difficulty = result.difficulty
-        question.retrievability = result.retrievability
-        question.nextReviewDate = result.nextReviewDate
+        question.sm2State = result.state
+        question.easinessFactor = result.easeFactor
+        question.interval = result.interval
+        question.repetitions = result.repetitions
+        question.nextReviewDate = result.nextReviewAt ?? Date()
 
         if grade == .again {
-            question.repetitions = 0
-            question.interval = 1
-            
-            // Re-insert failed question into queue
             let insertIndex = min(sessionQueue.count, Int.random(in: 2...6))
             sessionQueue.insert(question, at: insertIndex)
-            
             loadNextFromQueue()
         } else {
-            question.repetitions += 1
-            
             loadNextFromQueue()
             learnedTodayCount += 1
         }
-        
-        question.interval = max(
-            1,
-            Calendar.current.dateComponents([.day], from: Date(), to: question.nextReviewDate).day ?? 1
-        )
 
-        // Save to SQLite
         do {
             try DatabaseService.shared.saveQuestion(question)
-            
-            // Log to revlogs
+
             let revlog = Revlog(
                 id: UUID(),
                 cardId: question.id,
                 reviewDatetime: Date(),
                 grade: grade.rawValue,
-                timeTaken: 0, // Should be measured
-                preStability: cardState.stability,
-                preDifficulty: cardState.difficulty
+                timeTaken: 0,
+                preStability: Double(cardState.interval),
+                preDifficulty: cardState.easeFactor
             )
             try DatabaseService.shared.saveRevlog(revlog)
-            
+
             let answeredAt = Date()
             let timeSpentMs = max(
                 0,
@@ -243,7 +233,7 @@ class QuestionViewModel {
             )
             let syncEvent = SyncReviewEvent(
                 id: UUID(),
-                cardId: question.id,
+                cardId: question.backendCardID ?? question.id,
                 selectedOptionID: selectedOptionIDForCurrentSelection(),
                 rating: mapGradeToReviewRating(grade),
                 answeredAt: answeredAt,
@@ -251,17 +241,17 @@ class QuestionViewModel {
                 createdAt: answeredAt
             )
             try DatabaseService.shared.enqueueReviewEvent(syncEvent)
-            
+
         } catch {
             print("❌ SQLite Save error: \(error)")
         }
-        
+
         ProgressTracker.shared.logCardStudied()
         updateCounters()
         resetSelection()
     }
     
-    private func processExamReview(grade: FSRSScheduler.Grade) {
+    private func processExamReview(grade: SM2Scheduler.Grade) {
         guard let question = currentQuestion else { return }
         if grade == .again {
             let reinsertIndex = min(examQueue.count, Int.random(in: 15...40))
@@ -309,7 +299,7 @@ class QuestionViewModel {
         return shuffledAnswerOptions[index].id
     }
     
-    private func mapGradeToReviewRating(_ grade: FSRSScheduler.Grade) -> ReviewRating {
+    private func mapGradeToReviewRating(_ grade: SM2Scheduler.Grade) -> ReviewRating {
         switch grade {
         case .again: return .again
         case .hard: return .hard

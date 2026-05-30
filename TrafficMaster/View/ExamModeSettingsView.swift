@@ -52,7 +52,7 @@ struct ExamModeSettingsView: View {
                     Text("Режим подготовки")
                 } footer: {
                     if isEnabled {
-                        Text("В этом режиме FSRS приостанавливается. Все билеты будут показываться повторно для закрепления краткосрочной памяти.")
+                        Text("В этом режиме SM-2 приостанавливается. Все билеты будут показываться повторно для закрепления краткосрочной памяти.")
                     }
                 }
                 
@@ -71,7 +71,7 @@ struct ExamModeSettingsView: View {
                         }
                         
                         Text("• Показывает ВСЕ билеты (или только слабые темы)")
-                        Text("• FSRS НЕ обновляет интервалы (глобальный график не ломается)")
+                        Text("• SM-2 НЕ обновляет интервалы (глобальный график не ломается)")
                         Text("• При ошибке билет возвращается в очередь через 15-40 позиций")
                         Text("• Рекомендуется за 2-3 недели до экзамена")
                     }
@@ -179,7 +179,7 @@ struct ExamModeSettingsView: View {
             dailyCardLimit: dailyLimit,
             filterByWeakTopics: filterByWeakTopics,
             minErrorsForWeakTopic: 3,
-            suspendFSRS: isEnabled
+            suspendSM2: isEnabled
         )
         storage.saveConfiguration(config)
     }

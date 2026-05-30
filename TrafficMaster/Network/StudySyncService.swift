@@ -15,15 +15,18 @@ final class StudySyncService {
         try database.executeTransaction {
             for item in response.items {
                 let normalizedAnswer = item.answer.trimmingCharacters(in: .whitespacesAndNewlines)
-                let correctIndex = item.answerOptions.firstIndex {
+                let apiOptions = item.answerOptions.isEmpty
+                    ? [APIReviewOption(id: UUID(), text: item.answer, order: 0)]
+                    : item.answerOptions
+                let correctIndex = apiOptions.firstIndex {
                     $0.text.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare(normalizedAnswer) == .orderedSame
                 } ?? 0
-                
+
                 let question = Question(
                     id: item.cardID,
                     text: item.question,
-                    options: item.answerOptions.map(\.text),
-                    answerOptions: item.answerOptions.enumerated().map { idx, option in
+                    options: apiOptions.map(\.text),
+                    answerOptions: apiOptions.enumerated().map { idx, option in
                         AnswerOption(
                             id: option.id,
                             text: option.text,
@@ -35,8 +38,10 @@ final class StudySyncService {
                     explanation: item.answer,
                     imageName: item.imagePath?.split(separator: ".").dropLast().joined(separator: "."),
                     backendCardID: item.cardID,
+                    backendDeckID: deckID,
                     sectionTitle: "Синхронизировано",
                     chapterTitle: item.reason,
+                    sm2State: item.state ?? .new,
                     repetitions: item.repetitions ?? 0,
                     interval: item.interval ?? 1,
                     nextReviewDate: item.nextReviewAt ?? Date()

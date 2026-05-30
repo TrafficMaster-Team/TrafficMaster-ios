@@ -20,17 +20,36 @@ struct APIDeck: Codable, Sendable {
     let description: String?
 }
 
-struct APIReviewQueueResponse: Codable, Sendable {
+struct APIReviewQueueResponse: Decodable, Sendable {
     let items: [APIReviewQueueItem]
+
+    init(items: [APIReviewQueueItem]) {
+        self.items = items
+    }
+
+    init(from decoder: Decoder) throws {
+        if let container = try? decoder.singleValueContainer(),
+           let items = try? container.decode([APIReviewQueueItem].self) {
+            self.items = items
+            return
+        }
+
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.items = try container.decode([APIReviewQueueItem].self, forKey: .items)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case items
+    }
 }
 
-struct APIReviewQueueItem: Codable, Sendable {
+struct APIReviewQueueItem: Decodable, Sendable {
     let cardID: UUID
     let question: String
     let answer: String
     let imagePath: String?
     let tags: [String]
-    let state: String?
+    let state: SM2CardState?
     let interval: Int?
     let repetitions: Int?
     let nextReviewAt: Date?
@@ -49,6 +68,21 @@ struct APIReviewQueueItem: Codable, Sendable {
         case nextReviewAt = "next_review_at"
         case reason
         case answerOptions = "answer_options"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        cardID = try container.decode(UUID.self, forKey: .cardID)
+        question = try container.decode(String.self, forKey: .question)
+        answer = try container.decode(String.self, forKey: .answer)
+        imagePath = try container.decodeIfPresent(String.self, forKey: .imagePath)
+        tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
+        state = try container.decodeIfPresent(SM2CardState.self, forKey: .state)
+        interval = try container.decodeIfPresent(Int.self, forKey: .interval)
+        repetitions = try container.decodeIfPresent(Int.self, forKey: .repetitions)
+        nextReviewAt = try container.decodeIfPresent(Date.self, forKey: .nextReviewAt)
+        reason = try container.decode(String.self, forKey: .reason)
+        answerOptions = try container.decodeIfPresent([APIReviewOption].self, forKey: .answerOptions) ?? []
     }
 }
 
@@ -92,7 +126,7 @@ struct APIReviewCardRequest: Codable, Sendable {
 struct APIReviewCardResponse: Codable, Sendable {
     let cardProgressID: UUID
     let reviewLogID: UUID
-    let state: String
+    let state: SM2CardState
     let interval: Int
     let nextReviewAt: Date?
 

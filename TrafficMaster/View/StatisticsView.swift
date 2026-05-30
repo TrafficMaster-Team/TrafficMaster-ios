@@ -56,7 +56,7 @@ struct StatisticsView: View {
             let answeredQuestions = questions.filter { $0.repetitions > 0 }
             if answeredQuestions.isEmpty { continue }
             
-            // FSRS difficulty based
+            // SM-2 ease based
             let avgDifficulty = answeredQuestions.reduce(0.0) { $0 + $1.difficulty } / Double(answeredQuestions.count)
             let errorRate = Int((avgDifficulty / 10.0) * 100)
             

@@ -24,8 +24,8 @@ struct ExamModeConfiguration: Codable {
     /// Минимальное количество ошибок для попадания в «слабые темы»
     var minErrorsForWeakTopic: Int
     
-    /// Приостановить ли FSRS (не обновлять интервалы)
-    var suspendFSRS: Bool
+    /// Приостановить ли SM-2 (не обновлять интервалы)
+    var suspendSM2: Bool
     
     // MARK: - Presets
     
@@ -36,7 +36,7 @@ struct ExamModeConfiguration: Codable {
         dailyCardLimit: 400,
         filterByWeakTopics: false, // Показывать ВСЕ билеты
         minErrorsForWeakTopic: 3,
-        suspendFSRS: true
+        suspendSM2: true
     )
     
     /// Интенсив (за 3 дня до экзамена)
@@ -46,7 +46,7 @@ struct ExamModeConfiguration: Codable {
         dailyCardLimit: 600,
         filterByWeakTopics: true, // Только слабые темы
         minErrorsForWeakTopic: 2,
-        suspendFSRS: true
+        suspendSM2: true
     )
     
     /// Обычный режим (не экзамен)
@@ -56,7 +56,7 @@ struct ExamModeConfiguration: Codable {
         dailyCardLimit: 0,
         filterByWeakTopics: false,
         minErrorsForWeakTopic: 0,
-        suspendFSRS: false
+        suspendSM2: false
     )
     
     // MARK: - Computed Properties
