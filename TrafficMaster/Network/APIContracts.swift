@@ -16,8 +16,156 @@ struct APIConfig {
 
 struct APIDeck: Codable, Sendable {
     let id: UUID
+    let ownerID: UUID?
+    let deckConfigID: UUID?
     let title: String
     let description: String?
+    let isPublic: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case ownerID = "owner_id"
+        case deckConfigID = "deck_config_id"
+        case title
+        case description
+        case isPublic = "is_public"
+    }
+}
+
+struct APICard: Codable, Sendable {
+    let id: UUID
+    let deckID: UUID
+    let question: String
+    let answer: String
+    let imagePath: String?
+    let tags: [String]
+    let answerOptions: [String]
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case deckID = "deck_id"
+        case question
+        case answer
+        case imagePath = "image_path"
+        case tags
+        case answerOptions = "answer_options"
+    }
+}
+
+struct APICardProgress: Codable, Sendable {
+    let id: UUID
+    let userID: UUID
+    let cardID: UUID
+    let state: SM2CardState
+    let easeFactor: Double
+    let interval: Int
+    let repetitions: Int
+    let nextReviewAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userID = "user_id"
+        case cardID = "card_id"
+        case state
+        case easeFactor = "ease_factor"
+        case interval
+        case repetitions
+        case nextReviewAt = "next_review_at"
+    }
+}
+
+struct APIReviewLog: Codable, Sendable {
+    let id: UUID
+    let userID: UUID
+    let cardID: UUID
+    let rating: Int
+    let reviewedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userID = "user_id"
+        case cardID = "card_id"
+        case rating
+        case reviewedAt = "reviewed_at"
+    }
+}
+
+struct APIDailyLimits: Codable, Sendable {
+    let newCardsPerDay: Int
+    let maxReviewsPerDay: Int
+    let reviewsDontBuryNew: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case newCardsPerDay = "new_cards_per_day"
+        case maxReviewsPerDay = "max_reviews_per_day"
+        case reviewsDontBuryNew = "reviews_dont_bury_new"
+    }
+}
+
+struct APINewCardsConfig: Codable, Sendable {
+    let learningSteps: [Int]
+    let graduatingInterval: Int
+    let easyInterval: Int
+    let newCardOrder: String
+
+    enum CodingKeys: String, CodingKey {
+        case learningSteps = "learning_steps"
+        case graduatingInterval = "graduating_interval"
+        case easyInterval = "easy_interval"
+        case newCardOrder = "new_card_order"
+    }
+}
+
+struct APILapsesConfig: Codable, Sendable {
+    let relearningSteps: [Int]
+    let minInterval: Int
+    let leechThreshold: Int
+    let leechAction: String
+
+    enum CodingKeys: String, CodingKey {
+        case relearningSteps = "relearning_steps"
+        case minInterval = "min_interval"
+        case leechThreshold = "leech_threshold"
+        case leechAction = "leech_action"
+    }
+}
+
+struct APIAdvancedConfig: Codable, Sendable {
+    let maxInterval: Int
+    let easeFactor: Double
+    let easyFactor: Double
+    let intervalModifier: Double
+    let hardInterval: Double
+    let newInterval: Double
+
+    enum CodingKeys: String, CodingKey {
+        case maxInterval = "max_interval"
+        case easeFactor = "ease_factor"
+        case easyFactor = "easy_factor"
+        case intervalModifier = "interval_modifier"
+        case hardInterval = "hard_interval"
+        case newInterval = "new_interval"
+    }
+}
+
+struct APIDeckConfig: Codable, Sendable {
+    let id: UUID
+    let ownerID: UUID
+    let name: String
+    let dailyLimits: APIDailyLimits
+    let newCards: APINewCardsConfig
+    let lapses: APILapsesConfig
+    let advanced: APIAdvancedConfig
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case ownerID = "owner_id"
+        case name
+        case dailyLimits = "daily_limits"
+        case newCards = "new_cards"
+        case lapses
+        case advanced
+    }
 }
 
 struct APIReviewQueueResponse: Decodable, Sendable {
@@ -127,14 +275,18 @@ struct APIReviewCardResponse: Codable, Sendable {
     let cardProgressID: UUID
     let reviewLogID: UUID
     let state: SM2CardState
+    let easeFactor: Double
     let interval: Int
+    let repetitions: Int
     let nextReviewAt: Date?
 
     enum CodingKeys: String, CodingKey {
         case cardProgressID = "card_progress_id"
         case reviewLogID = "review_log_id"
         case state
+        case easeFactor = "ease_factor"
         case interval
+        case repetitions
         case nextReviewAt = "next_review_at"
     }
 }

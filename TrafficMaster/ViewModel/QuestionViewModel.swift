@@ -241,6 +241,7 @@ class QuestionViewModel {
                 createdAt: answeredAt
             )
             try DatabaseService.shared.enqueueReviewEvent(syncEvent)
+            submitReviewToBackendIfPossible(syncEvent, question: question)
 
         } catch {
             print("❌ SQLite Save error: \(error)")
@@ -297,6 +298,17 @@ class QuestionViewModel {
             return nil
         }
         return shuffledAnswerOptions[index].id
+    }
+
+    private func submitReviewToBackendIfPossible(_ event: SyncReviewEvent, question: Question) {
+        guard question.backendCardID != nil else { return }
+        Task {
+            do {
+                try await StudySyncService().submitReview(question: question, event: event)
+            } catch {
+                print("❌ Backend review sync error: \(error)")
+            }
+        }
     }
     
     private func mapGradeToReviewRating(_ grade: SM2Scheduler.Grade) -> ReviewRating {

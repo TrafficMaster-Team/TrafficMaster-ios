@@ -4,7 +4,7 @@
 
 ## 0. Текущее направление
 
-MVP переезжает с FSRS на backend-совместимый SuperMemo 2 / SM-2.
+MVP переезжает с устаревшего FSRS-направления на backend-совместимый SuperMemo 2 / SM-2.
 
 Источник истины для расписания карточек: backend `CardProgressService`.
 iOS может считать SM-2 локально только как offline-first зеркало, но после синка должна принимать backend-значения.
@@ -66,20 +66,20 @@ Backend deck config для SM-2:
 
 ## 4. Несостыковки frontend/backend
 
-### P0 blockers
+### P0 blockers / статус
 
-- В backend доменные handlers для cards/decks/card_progress есть, но HTTP routes сейчас подключают только `/v1/user`. В Swagger/OpenAPI карточные endpoints могут отсутствовать, пока backend не подключит routers.
-- iOS уже ожидает endpoints:
+- Backend HTTP routes для auth/decks/cards/card_progress/sync подключены в локальной ветке, Swagger/OpenAPI генерируется в `trafficmaster-backend/openapi.generated.json`.
+- iOS ожидает endpoints:
   - `GET /v1/decks/{deck_id}/review-queue`
   - `POST /v1/cards/{card_id}/review`
   - `POST /v1/sync/push`
   - `POST /v1/auth/signup`
   - `POST /v1/auth/login`
-  Сейчас это не подтверждено фактическим FastAPI route tree.
-- Backend `ReviewQueueItemView` не содержит `answer_options`, а iOS карточки ПДД требуют 2-5 вариантов ответа и один правильный вариант.
-- Backend `Card` имеет только `question` и `answer`; нет структуры MCQ-вариантов, `correct_option_id`, `explanation`, `section_title`, `chapter_title`.
-- Backend `ReviewCardCommand` принимает только `card_id` и `rating`; текущий iOS outbox отправляет `selected_option_id`, `answered_at`, `time_spent_ms`, `client_event_id`, `device_id`.
-- Backend OpenAPI не удалось сгенерировать локально из-за зависимости `psycopg2`: на машине нет `pg_config`. Нужен `libpq/postgresql` или замена dev-зависимости на `psycopg2-binary`.
+  Эти endpoints теперь есть в локальном FastAPI route tree.
+- Backend `ReviewQueueItemView` и HTTP schemas содержат `answer_options`, но доменная модель `Card` всё ещё хранит только `question` и `answer`, поэтому полноценное MCQ-хранилище ещё не готово.
+- Backend `Card` всё ещё не хранит `correct_option_id`, `explanation`, `section_title`, `chapter_title`.
+- Backend `ReviewCardCommand` принимает только `card_id` и `rating`; HTTP-слой принимает `client_event_id`, `selected_option_id`, `answered_at`, `time_spent_ms`, `device_id`, но idempotency по `client_event_id` ещё не реализована на уровне базы.
+- Backend OpenAPI генерируется локально после установки `libpq` и запуска с `PYTHONPATH=src`, `PATH=/opt/homebrew/opt/libpq/bin:$PATH`, `DYLD_LIBRARY_PATH=/opt/homebrew/opt/libpq/lib:/opt/homebrew/opt/openssl@3/lib:$DYLD_LIBRARY_PATH`.
 
 ### Existing local cards
 
@@ -103,7 +103,7 @@ Backend deck config для SM-2:
 - Backend: подключить HTTP routers для auth, deck, card, card_progress, sync.
 - Backend: добавить MCQ contract для карточек или отдельную таблицу/options model.
 - Backend: опубликовать фактический Swagger/OpenAPI и зафиксировать response/request schemas.
-- iOS: заменить все оставшиеся актуальные FSRS-упоминания в коде/доках на SM-2; исторические документы пометить как устаревшие.
+- iOS: заменить все оставшиеся актуальные FSRS-упоминания в коде/README/AGENTS.md на SM-2; исторические документы пометить как устаревшие.
 - iOS: принимать backend `CardProgress` как источник истины после review/sync.
 - iOS: мигрировать локальные карточки v5 и заполнить `sm2_state = new` для старых записей.
 
@@ -132,3 +132,25 @@ Backend deck config для SM-2:
 | Ответ верный мгновенно | Легко | EASY (4) |
 
 Ключевое правило: `Угадал` не считается знанием и не должен повышать карточку как `GOOD`.
+
+## 7. Статус выполнения на 2026-05-30
+
+### Готово локально
+
+- Backend: подключены HTTP routers для auth/decks/cards/deck_config/sync.
+- Backend: сгенерирован локальный `openapi.generated.json` с карточными endpoints.
+- Backend: `POST /v1/cards/{card_id}/review` возвращает `card_progress_id`, `review_log_id`, `state`, `ease_factor`, `interval`, `repetitions`, `next_review_at`.
+- Backend: добавлены pytest-проверки SM-2 parity для `learning -> review`, `review -> relearning`, `review easy`.
+- iOS: добавлены Swagger-ориентированные модели `APICard`, `APICardProgress`, `APIDeckConfig`, `APIReviewLog`.
+- iOS: `StudySyncService` после `POST /review` принимает backend `CardProgress` как источник истины и обновляет локальные поля карточки.
+- iOS: активный scheduler переименован в `SM2Scheduler.swift`; актуальное направление в README уже SM-2.
+
+### Ещё нужно закрыть перед полноценным merge frontend + backend
+
+- Backend: заменить временный MCQ contract на полноценную модель/таблицу вариантов ответа и правильного варианта.
+- Backend: добавить bulk endpoint для первичной загрузки/сопоставления примерно 3000 ПДД карточек.
+- Backend: добавить persistable idempotency по `client_event_id`, чтобы offline outbox не создавал повторные `ReviewLog`.
+- Backend: проверить запуск полного приложения с реальными PostgreSQL/Redis, а не только генерацию OpenAPI и unit tests.
+- iOS: добавить настоящий XCTest target/тесты SM-2 parity после согласования изменений таргета.
+- iOS: добавить экран настроек SM-2 deck config после стабилизации backend endpoints.
+- iOS/backend: согласовать финальный импорт существующих локальных карточек, которым сейчас нужны backend ids и MCQ-поля.

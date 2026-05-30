@@ -35,11 +35,38 @@ final class APIClient {
         self.decoder = decoder
     }
 
-    func fetchReviewQueue(deckID: UUID, limit: Int = 80) async throws -> APIReviewQueueResponse {
-        var components = URLComponents(url: config.baseURL.appendingPathComponent("v1/decks/\(deckID.uuidString)/review-queue"), resolvingAgainstBaseURL: false)
-        components?.queryItems = [URLQueryItem(name: "limit", value: String(limit))]
-        guard let url = components?.url else { throw APIClientError.invalidResponse }
+    func fetchDeck(deckID: UUID) async throws -> APIDeck {
+        let url = config.baseURL.appendingPathComponent("v1/decks/\(deckID.uuidString)")
+        return try await send(makeRequest(url: url, method: .get), decodeAs: APIDeck.self)
+    }
 
+    func fetchDeckCards(deckID: UUID, limit: Int = 100, offset: Int = 0) async throws -> [APICard] {
+        let path = "v1/decks/\(deckID.uuidString)/cards"
+        let url = try makeURL(path: path, queryItems: [
+            URLQueryItem(name: "limit", value: String(limit)),
+            URLQueryItem(name: "offset", value: String(offset))
+        ])
+        return try await send(makeRequest(url: url, method: .get), decodeAs: [APICard].self)
+    }
+
+    func fetchDeckConfig(deckConfigID: UUID) async throws -> APIDeckConfig {
+        let url = config.baseURL.appendingPathComponent("v1/deck-configs/\(deckConfigID.uuidString)")
+        return try await send(makeRequest(url: url, method: .get), decodeAs: APIDeckConfig.self)
+    }
+
+    func fetchCardProgress(cardID: UUID) async throws -> APICardProgress {
+        let url = config.baseURL.appendingPathComponent("v1/cards/\(cardID.uuidString)/progress")
+        return try await send(makeRequest(url: url, method: .get), decodeAs: APICardProgress.self)
+    }
+
+    func fetchReviewLog(cardID: UUID) async throws -> [APIReviewLog] {
+        let url = config.baseURL.appendingPathComponent("v1/cards/\(cardID.uuidString)/review-log")
+        return try await send(makeRequest(url: url, method: .get), decodeAs: [APIReviewLog].self)
+    }
+
+    func fetchReviewQueue(deckID: UUID, limit: Int = 80) async throws -> APIReviewQueueResponse {
+        let path = "v1/decks/\(deckID.uuidString)/review-queue"
+        let url = try makeURL(path: path, queryItems: [URLQueryItem(name: "limit", value: String(limit))])
         let request = makeRequest(url: url, method: .get)
         return try await send(request, decodeAs: APIReviewQueueResponse.self)
     }
@@ -58,13 +85,14 @@ final class APIClient {
         var request = makeRequest(url: url, method: .post)
         request.httpBody = try encoder.encode(payload)
 
-        let (_, response) = try await session.data(for: request)
+        let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIClientError.invalidResponse
         }
 
         guard (200...299).contains(httpResponse.statusCode) else {
-            throw APIClientError.httpError(statusCode: httpResponse.statusCode, body: "Login failed")
+            let body = String(data: data, encoding: .utf8) ?? "Login failed"
+            throw APIClientError.httpError(statusCode: httpResponse.statusCode, body: body)
         }
 
         return httpResponse
@@ -84,6 +112,13 @@ final class APIClient {
         request.httpBody = try encoder.encode(payload)
 
         return try await send(request, decodeAs: APISyncPushResponse.self)
+    }
+
+    private func makeURL(path: String, queryItems: [URLQueryItem]) throws -> URL {
+        var components = URLComponents(url: config.baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)
+        components?.queryItems = queryItems
+        guard let url = components?.url else { throw APIClientError.invalidResponse }
+        return url
     }
 
     private func makeRequest(url: URL, method: HTTPMethod) -> URLRequest {
