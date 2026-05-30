@@ -361,17 +361,26 @@ struct SquishyButtonStyle: ButtonStyle {
 
 // MARK: - Haptics Helper
 struct Haptics {
+    #if targetEnvironment(simulator)
+    private static let isEnabled = false
+    #else
+    private static let isEnabled = true
+    #endif
+
     static func selection() {
+        guard isEnabled else { return }
         let generator = UISelectionFeedbackGenerator()
         generator.selectionChanged()
     }
-    
+
     static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        guard isEnabled else { return }
         let generator = UIImpactFeedbackGenerator(style: style)
         generator.impactOccurred()
     }
-    
+
     static func notification(_ type: UINotificationFeedbackGenerator.FeedbackType) {
+        guard isEnabled else { return }
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(type)
     }

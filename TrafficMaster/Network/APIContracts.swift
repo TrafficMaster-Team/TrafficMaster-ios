@@ -58,6 +58,21 @@ struct APIReviewOption: Codable, Identifiable, Sendable {
     let order: Int?
 }
 
+struct APISignUpRequest: Codable, Sendable {
+    let email: String
+    let name: String
+    let password: String
+}
+
+struct APISignUpResponse: Codable, Sendable {
+    let id: UUID
+}
+
+struct APILoginRequest: Codable, Sendable {
+    let email: String
+    let password: String
+}
+
 struct APIReviewCardRequest: Codable, Sendable {
     let rating: Int
     let clientEventID: UUID?

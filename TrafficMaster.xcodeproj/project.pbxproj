@@ -6,10 +6,6 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		F543A53C2F59551600ACD0D5 /* GEMINI.md in Resources */ = {isa = PBXBuildFile; fileRef = F543A53B2F59551600ACD0D5 /* GEMINI.md */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXContainerItemProxy section */
 		F52B05CA2F7D80FE00F0E036 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -23,7 +19,6 @@
 /* Begin PBXFileReference section */
 		F52B05C42F7D80FE00F0E036 /* TrafficMasterUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrafficMasterUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F52B05DE2F7D894000F0E036 /* TrafficMaster.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = TrafficMaster.xctestplan; sourceTree = "<group>"; };
-		F543A53B2F59551600ACD0D5 /* GEMINI.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = GEMINI.md; sourceTree = "<group>"; };
 		F5A57B4D2F45F2D4002ADB59 /* TrafficMaster.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TrafficMaster.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -65,7 +60,6 @@
 				F5A57B4F2F45F2D4002ADB59 /* TrafficMaster */,
 				F52B05C52F7D80FE00F0E036 /* TrafficMasterUITests */,
 				F5A57B4E2F45F2D4002ADB59 /* Products */,
-				F543A53B2F59551600ACD0D5 /* GEMINI.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -173,7 +167,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F543A53C2F59551600ACD0D5 /* GEMINI.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

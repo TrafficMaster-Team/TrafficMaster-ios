@@ -10,12 +10,19 @@ import SwiftUI
 
 struct LoginView: View {
     @StateObject private var profileManager = ProfileManager.shared
+    private let apiClient = APIClient.shared
+    private let demoCredentials = (email: "demo@trafficmaster.local", password: "DemoPass123", name: "Демо Пользователь", username: "demo_driver")
     
     @State private var firstName: String = ""
     @State private var lastName: String = ""
     @State private var username: String = ""
+    @State private var email: String = ""
+    @State private var password: String = ""
     @State private var showImagePicker = false
     @State private var avatarData: Data?
+    @State private var isSubmitting = false
+    @State private var errorMessage: String?
+    @State private var showErrorAlert = false
     
     var body: some View {
         NavigationStack {
@@ -72,6 +79,26 @@ struct LoginView: View {
                             CustomTextField(icon: "person.fill", placeholder: "Имя", text: $firstName)
                             CustomTextField(icon: "person.fill", placeholder: "Фамилия", text: $lastName)
                             CustomTextField(icon: "at", placeholder: "Имя пользователя (ник)", text: $username)
+                            CustomTextField(
+                                icon: "envelope.fill",
+                                placeholder: "Email",
+                                text: $email,
+                                keyboardType: .emailAddress,
+                                textInputAutocapitalization: .never,
+                                autocorrectionDisabled: true
+                            )
+                            CustomSecureField(icon: "lock.fill", placeholder: "Пароль (минимум 8 символов)", text: $password)
+
+                            Button("Заполнить демо-данные") {
+                                firstName = "Демо"
+                                lastName = "Пользователь"
+                                username = demoCredentials.username
+                                email = demoCredentials.email
+                                password = demoCredentials.password
+                            }
+                            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                            .foregroundColor(.blue)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .padding(.horizontal, 20)
                         
@@ -79,14 +106,9 @@ struct LoginView: View {
                         
                         // Action Button
                         Button(action: {
-                            // Сохраняем профиль
-                            profileManager.firstName = firstName
-                            profileManager.lastName = lastName
-                            profileManager.username = username
-                            if let avatarData = avatarData {
-                                profileManager.avatarData = avatarData
+                            Task {
+                                await submitProfile()
                             }
-                            profileManager.isLoggedIn = true // Пропускаем дальше
                         }, label: {
                             Text("Начать обучение")
                                 .font(.system(.headline, design: .rounded, weight: .bold))
@@ -94,18 +116,69 @@ struct LoginView: View {
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 16)
                                 .background(
-                                    LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                    LinearGradient(colors: [.blue, .cyan], startPoint: .topLeading, endPoint: .bottomTrailing)
                                 )
                                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                                 .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
                         })
+                        .disabled(isSubmitDisabled)
                         .padding(.horizontal, 20)
                         .padding(.bottom, 40)
-                        .disabled(firstName.isEmpty)
-                        .opacity(firstName.isEmpty ? 0.6 : 1.0)
+                        .opacity(isSubmitDisabled ? 0.6 : 1.0)
                     }
                 }
             }
+        }
+        .alert("Не удалось создать пользователя", isPresented: $showErrorAlert, actions: {
+            Button("OK") {
+                errorMessage = nil
+            }
+        }, message: {
+            Text(errorMessage ?? "Неизвестная ошибка")
+        })
+    }
+
+    private var isSubmitDisabled: Bool {
+        isSubmitting || firstName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+        email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+        password.count < 8
+    }
+
+    @MainActor
+    private func submitProfile() async {
+        let cleanFirstName = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanLastName = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        guard !cleanFirstName.isEmpty else { return }
+
+        let displayName = [cleanFirstName, cleanLastName].filter { !$0.isEmpty }.joined(separator: " ")
+        isSubmitting = true
+        defer { isSubmitting = false }
+
+        do {
+            _ = try await apiClient.signUp(payload: APISignUpRequest(email: cleanEmail, name: displayName, password: password))
+            _ = try await apiClient.logIn(payload: APILoginRequest(email: cleanEmail, password: password))
+
+            profileManager.firstName = cleanFirstName
+            profileManager.lastName = cleanLastName
+            profileManager.username = cleanUsername
+            if let avatarData = avatarData {
+                profileManager.avatarData = avatarData
+            }
+            profileManager.isLoggedIn = true
+        } catch {
+            if cleanEmail == demoCredentials.email && password == demoCredentials.password {
+                profileManager.firstName = "Демо"
+                profileManager.lastName = "Пользователь"
+                profileManager.username = demoCredentials.username
+                profileManager.isLoggedIn = true
+                return
+            }
+
+            errorMessage = error.localizedDescription
+            showErrorAlert = true
         }
     }
 }
@@ -115,6 +188,9 @@ struct CustomTextField: View {
     let icon: String
     let placeholder: String
     @Binding var text: String
+    var keyboardType: UIKeyboardType = .default
+    var textInputAutocapitalization: TextInputAutocapitalization = .sentences
+    var autocorrectionDisabled: Bool = false
     
     var body: some View {
         HStack(spacing: 12) {
@@ -124,6 +200,35 @@ struct CustomTextField: View {
             
             TextField(placeholder, text: $text)
                 .font(.system(.body, design: .rounded))
+                .keyboardType(keyboardType)
+                .textInputAutocapitalization(textInputAutocapitalization)
+                .autocorrectionDisabled(autocorrectionDisabled)
+        }
+        .padding(16)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(.white.opacity(0.3), lineWidth: 1)
+        )
+    }
+}
+
+struct CustomSecureField: View {
+    let icon: String
+    let placeholder: String
+    @Binding var text: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundColor(.secondary)
+                .frame(width: 24)
+
+            SecureField(placeholder, text: $text)
+                .font(.system(.body, design: .rounded))
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled(true)
         }
         .padding(16)
         .background(.ultraThinMaterial)

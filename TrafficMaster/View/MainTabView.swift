@@ -8,37 +8,40 @@
 import SwiftUI
 
 struct MainTabView: View {
-    @State private var selectedTab = 0
-    
+    @EnvironmentObject private var navigationState: AppNavigationState
+
     var body: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: $navigationState.selectedTab) {
             HomeView()
                 .tabItem {
                     Image(systemName: "house.fill")
                     Text("Главная")
                 }
-                .tag(0)
-            
+                .tag(AppNavigationState.Tab.home)
+
             StatisticsView()
                 .tabItem {
                     Image(systemName: "chart.bar.fill")
                     Text("Статистика")
                 }
-                .tag(1)
-            
+                .tag(AppNavigationState.Tab.statistics)
+
             ProfileView()
                 .tabItem {
                     Image(systemName: "person.crop.circle.fill")
                     Text("Профиль")
                 }
-                .tag(2)
+                .tag(AppNavigationState.Tab.profile)
         }
         .tint(.blue)
+#if os(iOS)
         .toolbarBackground(.visible, for: .tabBar)
         .toolbarBackground(.ultraThinMaterial, for: .tabBar)
+#endif
     }
 }
 
 #Preview {
     MainTabView()
+        .environmentObject(AppNavigationState())
 }

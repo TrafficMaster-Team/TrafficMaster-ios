@@ -44,6 +44,32 @@ final class APIClient {
         return try await send(request, decodeAs: APIReviewQueueResponse.self)
     }
 
+    func signUp(payload: APISignUpRequest) async throws -> APISignUpResponse {
+        let url = config.baseURL.appendingPathComponent("v1/auth/signup")
+        var request = makeRequest(url: url, method: .post)
+        request.httpBody = try encoder.encode(payload)
+
+        return try await send(request, decodeAs: APISignUpResponse.self)
+    }
+
+    @discardableResult
+    func logIn(payload: APILoginRequest) async throws -> HTTPURLResponse {
+        let url = config.baseURL.appendingPathComponent("v1/auth/login")
+        var request = makeRequest(url: url, method: .post)
+        request.httpBody = try encoder.encode(payload)
+
+        let (_, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIClientError.invalidResponse
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw APIClientError.httpError(statusCode: httpResponse.statusCode, body: "Login failed")
+        }
+
+        return httpResponse
+    }
+
     func reviewCard(cardID: UUID, payload: APIReviewCardRequest) async throws -> APIReviewCardResponse {
         let url = config.baseURL.appendingPathComponent("v1/cards/\(cardID.uuidString)/review")
         var request = makeRequest(url: url, method: .post)

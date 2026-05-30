@@ -14,6 +14,8 @@ struct ContentView: View {
     @State private var showLogin = false
     @State private var errorMessage: String? = nil
     @State private var hasLoadedQuestions = false
+    @AppStorage("daily_new_cards_limit") private var dailyNewCardsLimit = 34
+    @AppStorage("enable_study_notifications") private var enableStudyNotifications = true
 
     private let profileManager = ProfileManager.shared
 
@@ -34,7 +36,7 @@ struct ContentView: View {
                     Button("Повторить") {
                         errorMessage = nil
                         Task { @MainActor in
-                            viewModel.loadQuestions()
+                            viewModel.loadQuestions(dailyNewLimit: dailyNewCardsLimit)
                             if viewModel.allQuestions.isEmpty {
                                 errorMessage = "База данных пуста (0 вопросов)."
                             }
@@ -64,6 +66,8 @@ struct ContentView: View {
             }
         }
         .onAppear {
+            guard enableStudyNotifications else { return }
+
             // Запрашиваем разрешение на уведомления при первом запуске
             UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { _, error in
                 if let error = error {
@@ -74,7 +78,7 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("DatabaseImportCompleted"))) { _ in
             // Как только фоновый импорт завершен, просим viewModel загрузить вопросы еще раз
             Task { @MainActor in
-                viewModel.loadQuestions()
+                viewModel.loadQuestions(dailyNewLimit: dailyNewCardsLimit)
                 if viewModel.allQuestions.isEmpty {
                     errorMessage = "Импорт завершен, но вопросов в базе 0."
                 } else {
@@ -94,7 +98,7 @@ struct ContentView: View {
     private func loadInitialData() {
         Task { @MainActor in
             // Сначала проверяем, есть ли уже данные
-            viewModel.loadQuestions()
+            viewModel.loadQuestions(dailyNewLimit: dailyNewCardsLimit)
             
             if !viewModel.allQuestions.isEmpty {
                 hasLoadedQuestions = true
@@ -108,7 +112,7 @@ struct ContentView: View {
             while waited < 10.0 && viewModel.allQuestions.isEmpty {
                 try? await Task.sleep(for: .seconds(checkInterval))
                 waited += checkInterval
-                viewModel.loadQuestions()
+                viewModel.loadQuestions(dailyNewLimit: dailyNewCardsLimit)
             }
             
             // Если после ожидания всё ещё пусто — ошибка
@@ -123,4 +127,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .environmentObject(AppNavigationState())
 }
