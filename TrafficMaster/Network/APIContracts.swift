@@ -39,7 +39,11 @@ struct APICard: Codable, Sendable {
     let answer: String
     let imagePath: String?
     let tags: [String]
-    let answerOptions: [String]
+    let answerOptions: [APIReviewOption]
+    let correctOptionID: UUID?
+    let explanation: String?
+    let sectionTitle: String?
+    let chapterTitle: String?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -49,6 +53,10 @@ struct APICard: Codable, Sendable {
         case imagePath = "image_path"
         case tags
         case answerOptions = "answer_options"
+        case correctOptionID = "correct_option_id"
+        case explanation
+        case sectionTitle = "section_title"
+        case chapterTitle = "chapter_title"
     }
 }
 

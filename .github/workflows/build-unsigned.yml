@@ -1,0 +1,148 @@
+name: AltStore/SideStore Automated CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  build_and_deploy:
+    name: Build, Package and Deploy iOS App
+    runs-on: macos-latest
+    
+    env:
+      WORKSPACE_PATH: "TrafficMaster.xcodeproj"
+      SCHEME_NAME: "TrafficMaster"
+      BUNDLE_ID: "OrDinaD.TrafficMaster"
+      APP_NAME: "TrafficMaster"
+      
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Increment Build Number
+        run: |
+          PLIST_PATH=$(find . -name "Info.plist" -not -path "*/Pods/*" | head -n 1)
+          echo "Updating Plist at: $PLIST_PATH"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ github.run_number }}" "$PLIST_PATH"
+
+      - name: Compile Application (Unsigned)
+        run: |
+          xcodebuild clean build \
+            -project "${{ env.WORKSPACE_PATH }}" \
+            -scheme "${{ env.SCHEME_NAME }}" \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath ./build_output \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_STYLE=Manual
+
+      - name: Package IPA Archive
+        run: |
+          mkdir -p Payload
+          APP_BUNDLE=$(find ./build_output/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
+          cp -r "$APP_BUNDLE" Payload/
+          zip -r -9 "${{ env.APP_NAME }}.ipa" Payload
+          rm -rf Payload
+
+      - name: Extract Final Metadata
+        id: metadata
+        run: |
+          APP_BUNDLE=$(find ./build_output/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
+          VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP_BUNDLE/Info.plist")
+          BUILD=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$APP_BUNDLE/Info.plist")
+          IPA_SIZE=$(stat -f %z "${{ env.APP_NAME }}.ipa")
+          
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "BUILD=$BUILD" >> $GITHUB_ENV
+          echo "SIZE=$IPA_SIZE" >> $GITHUB_ENV
+          
+          COMMIT_SHA_SHORT=$(git rev-parse --short HEAD)
+          echo "RELEASE_TAG=v${VERSION}-build.${BUILD}-${COMMIT_SHA_SHORT}" >> $GITHUB_ENV
+
+      - name: Publish to GitHub Releases
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: "Update ${{ env.VERSION }} (${{ env.BUILD }})"
+          body: "Automated build for commit ${{ github.sha }}"
+          files: "${{ env.APP_NAME }}.ipa"
+          draft: false
+          prerelease: false
+
+      - name: Setup Python Runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Update apps.json Repository Manifest
+        env:
+          DL_URL: "https://github.com/${{ github.repository }}/releases/download/${{ env.RELEASE_TAG }}/${{ env.APP_NAME }}.ipa"
+        run: |
+          cat << 'EOF' > update_repo.py
+          import json
+          import os
+          import datetime
+
+          version = os.environ['VERSION']
+          build = os.environ['BUILD']
+          size = int(os.environ['SIZE'])
+          url = os.environ['DL_URL']
+          bundle = os.environ['BUNDLE_ID']
+
+          json_file = 'apps.json'
+          
+          try:
+              with open(json_file, 'r', encoding='utf-8') as f:
+                  data = json.load(f)
+          except FileNotFoundError:
+              print(f"Error: {json_file} not found. Ensure the base repository JSON is committed.")
+              exit(1)
+
+          new_ver = {
+              "version": version,
+              "buildVersion": build,
+              "date": datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%S%z'),
+              "size": size,
+              "downloadURL": url,
+              "localizedDescription": f"Automated commit push. CI Build {build}."
+          }
+
+          found = False
+          for app in data.get('apps', []):
+              if app.get('bundleIdentifier') == bundle:
+                  if 'versions' not in app:
+                      app['versions'] = []
+                  app['versions'].insert(0, new_ver)
+                  app['versions'] = app['versions'][:15]
+                  found = True
+                  break
+          
+          if not found:
+              print(f"Error: Bundle ID {bundle} not found in {json_file}")
+              exit(1)
+
+          with open(json_file, 'w', encoding='utf-8') as f:
+              json.dump(data, f, indent=4, ensure_ascii=False)
+          print("JSON repository successfully updated.")
+          EOF
+          
+          python3 update_repo.py
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
+          publish_branch: gh-pages
+          keep_files: true
+          commit_message: "Automated repo manifest update for build ${{ env.BUILD }}"
