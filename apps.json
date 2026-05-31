@@ -1,0 +1,31 @@
+{
+    "name": "TrafficMaster Repo",
+    "identifier": "com.trafficmaster.team.repo",
+    "subtitle": "Официальный репозиторий для бета-тестирования",
+    "description": "Автоматически обновляемый репозиторий TrafficMaster для AltStore, SideStore и LiveContainer.",
+    "iconURL": "https://TrafficMaster-Team.github.io/TrafficMaster-ios/icon.png",
+    "tintColor": "#018084",
+    "apps": [
+        {
+            "name": "TrafficMaster",
+            "bundleIdentifier": "OrDinaD.TrafficMaster",
+            "developerName": "TrafficMaster Team",
+            "localizedDescription": "Приложение для изучения ПДД билетов с помощью алгоритма интервальных повторений.",
+            "iconURL": "https://TrafficMaster-Team.github.io/TrafficMaster-ios/icon.png",
+            "appPermissions": {
+                "entitlements": [],
+                "privacy": {}
+            },
+            "versions": [
+                {
+                    "version": "1.0.1",
+                    "buildVersion": "5",
+                    "date": "2026-05-31T06:41:48+0000",
+                    "size": 319572463,
+                    "downloadURL": "https://github.com/TrafficMaster-Team/TrafficMaster-ios/releases/download/v1.0.1-build.5-4ea78a4/TrafficMaster.ipa",
+                    "localizedDescription": "Automated commit push. CI Build 5."
+                }
+            ]
+        }
+    ]
+}
