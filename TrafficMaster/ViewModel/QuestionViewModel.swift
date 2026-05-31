@@ -1,322 +1,156 @@
-//
-//  QuestionViewModel.swift
-//  TrafficMaster
-//
-//  Created by Влад on 18.02.26.
-//
-
 import Foundation
-import SwiftUI
+import Combine
 
-@Observable
-class QuestionViewModel {
-    var allQuestions: [Question] = []
-    var currentQuestion: Question?
-    var shuffledOptions: [String] = []
-    private var shuffledAnswerOptions: [AnswerOption] = []
-    var selectedOptionIndex: Int?
-    var isCorrect: Bool?
-    var userAnswerIndex: Int?
-    var showExplanation = false
+@MainActor
+final class QuestionViewModel: ObservableObject {
+    @Published private(set) var settings: StudySettings = .default
+    @Published private(set) var currentCard: QuestionCard?
+    @Published private(set) var sessionQueue: [QuestionCard] = []
+    @Published private(set) var totalInSession: Int = 0
+    @Published private(set) var completedInSession: Int = 0
+
+    @Published var selectedOptionID: UUID?
+    @Published var revealedRating: ReviewRating?
+    @Published var generatedExplanation: String?
+    @Published var isLoadingExplanation = false
+
+    private let database: DatabaseService
+    private let scheduler: FSRSScheduler
+    private let ragService: RAGExplanationService
     private var questionShownAt: Date?
-    
-    // Anki / Progress tracking
-    var targetNewCards = 0
-    var learnedTodayCount = 0
-    var cardsToReviewCount = 0
-    
-    // Session Queue
-    private var sessionQueue: [Question] = []
-    private var sessionCards: [Question] = [] // Tracks the full batch for UI counters
-    
-    // SM-2 Scheduler (Domain Layer), mirrored from backend CardProgressService.
-    private let sm2Scheduler = SM2Scheduler()
-    
-    // Exam Mode
-    private var examQueue: [Question] = []
-    private var isExamMode = false
-    
-    // Stats for UI (Stored properties to trigger SwiftUI updates)
-    var blueCount: Int = 0
-    var yellowCount: Int = 0
-    var greenCount: Int = 0
-    
-    var dueTodayCount: Int {
-        let now = Date()
-        return allQuestions.filter { $0.sm2State != .new && $0.nextReviewDate <= now }.count
+
+    init(
+        database: DatabaseService? = nil,
+        scheduler: FSRSScheduler? = nil,
+        ragService: RAGExplanationService? = nil
+    ) {
+        self.database = database ?? .shared
+        self.scheduler = scheduler ?? FSRSScheduler()
+        self.ragService = ragService ?? .shared
     }
-    
-    var introducedTodayCount: Int {
-        let calendar = Calendar.current
-        return allQuestions.filter { question in
-            guard let seenAt = question.seenAt else { return false }
-            return calendar.isDateInToday(seenAt)
-        }.count
+
+    var isCompleted: Bool {
+        currentCard == nil
     }
-    
-    var correctAnswerIndexInShuffled: Int? {
-        guard let question = currentQuestion else { return nil }
-        if let explicitIndex = shuffledAnswerOptions.firstIndex(where: { $0.isCorrect == true }) {
-            return explicitIndex
-        }
-        
-        if let explicitCorrectID = question.answerOptions.first(where: { $0.isCorrect == true })?.id {
-            return shuffledAnswerOptions.firstIndex(where: { $0.id == explicitCorrectID })
-        }
-        
-        let correctText = question.options[question.correctAnswerIndex]
-        return shuffledOptions.firstIndex(of: correctText)
+
+    var currentQuestion: Question? {
+        currentCard?.question
     }
-    
-    var showGuessedButton: Bool {
-        userAnswerIndex != nil && isCorrect == true
+
+    var canUseEasy: Bool {
+        settings.showEasyButton
     }
-    
-    private func updateCounters() {
-        // Anki-like tiers:
-        // Blue: never seen, Red: seen but not yet graduated, Green: review/strengthening
-        blueCount = sessionCards.filter { $0.seenAt == nil }.count
-        yellowCount = sessionCards.filter { $0.seenAt != nil && $0.sm2State != .review }.count
-        greenCount = sessionCards.filter { $0.seenAt != nil && $0.sm2State == .review }.count
+
+    var selectedOption: AnswerOption? {
+        guard let id = selectedOptionID else { return nil }
+        return currentCard?.question.options.first(where: { $0.id == id })
     }
-    
-    func loadQuestions(dailyNewLimit: Int = 34, isExamMode: Bool = false) {
+
+    var isCorrectSelection: Bool {
+        guard let card = currentCard, let selected = selectedOptionID else { return false }
+        return card.question.correctOptionID == selected
+    }
+
+    func loadSession() {
         do {
-            print("📥 QuestionViewModel.loadQuestions() called")
-            let questions = try DatabaseService.shared.fetchAllQuestions()
-            print("✅ Successfully loaded \(questions.count) questions from SQLite")
-            self.allQuestions = questions
-            self.isExamMode = isExamMode
-            self.targetNewCards = dailyNewLimit
-
-            if isExamMode {
-                setupExamSession()
-            } else {
-                setupStandardSession()
-            }
-
-            updateCounters()
-            print("🎯 Session setup complete, sessionCards: \(sessionCards.count)")
+            settings = try database.loadSettings()
+            try database.importBundledQuestionsIfNeeded()
+            let cards = try database.fetchSessionCards(
+                newLimit: settings.newCardsPerDay,
+                maxReviews: settings.maxReviewsPerDay
+            )
+            sessionQueue = cards
+            totalInSession = cards.count
+            completedInSession = 0
+            moveNext()
         } catch {
-            print("❌ Failed to load questions from SQLite: \(error)")
-            print("❌ Error details: \(error.localizedDescription)")
+            sessionQueue = []
+            currentCard = nil
+            generatedExplanation = "Ошибка загрузки: \(error.localizedDescription)"
         }
     }
-    
-    private func setupExamSession() {
-        examQueue = allQuestions.shuffled()
-        loadNextExamQuestion()
-    }
-    
-    private func loadNextExamQuestion() {
-        guard !examQueue.isEmpty else {
-            currentQuestion = nil
-            return
+
+    func selectOption(_ optionID: UUID) {
+        guard revealedRating == nil else { return }
+        selectedOptionID = optionID
+        revealedRating = isCorrectSelection ? .good : .again
+
+        if !isCorrectSelection {
+            Task { await loadMistakeExplanation() }
+        } else {
+            generatedExplanation = nil
         }
-        let nextQuestion = examQueue.removeFirst()
-        currentQuestion = nextQuestion
-        prepareShuffledOptions(for: nextQuestion)
     }
-    
-    private func setupStandardSession() {
+
+    func applyGuessed() {
+        guard revealedRating == .good else { return }
+        revealedRating = .hard
+    }
+
+    func confirmCurrentAnswer() {
+        guard let card = currentCard,
+              let selectedOptionID,
+              let rating = revealedRating
+        else { return }
+
         let now = Date()
-        
-        // Continue-first strategy:
-        // 1) Learning continuation (seen at least once, but not graduated)
-        // 2) Due review cards
-        // 3) Brand-new unseen cards
-        let learningContinuation = allQuestions.filter {
-            $0.seenAt != nil && ($0.sm2State == .learning || $0.sm2State == .relearning) && $0.nextReviewDate <= now
-        }
-        let dueReview = allQuestions.filter { $0.seenAt != nil && $0.sm2State == .review && $0.nextReviewDate <= now }
-        
-        // Hard daily cap for new cards:
-        // if user already introduced N new cards today, do not exceed targetNewCards.
-        let remainingNewToday = max(0, targetNewCards - introducedTodayCount)
-        let newUnseen = allQuestions.filter { $0.seenAt == nil }.prefix(remainingNewToday)
-        
-        sessionCards = Array(learningContinuation) + Array(dueReview) + Array(newUnseen)
-        sessionQueue = sessionCards
-        sessionQueue.shuffle()
-        
-        cardsToReviewCount = learningContinuation.count + dueReview.count
-        loadNextFromQueue()
-    }
-    
-    private func loadNextFromQueue() {
-        guard !sessionQueue.isEmpty else {
-            currentQuestion = nil
-            return
-        }
-        let next = sessionQueue.removeFirst()
-        currentQuestion = next
-        prepareShuffledOptions(for: next)
-    }
-    
-    func selectAnswer(index: Int) {
-        guard userAnswerIndex == nil else { return }
-        userAnswerIndex = index
-        selectedOptionIndex = index
-        
-        if index == correctAnswerIndexInShuffled {
-            isCorrect = true
-        } else {
-            isCorrect = false
-            showExplanation = true
-        }
-    }
-    
-    func continueToNext() {
-        guard currentQuestion != nil, let isCorrect = isCorrect else { return }
-        if isCorrect == true {
-            applySM2Rating(grade: .good)
-        } else {
-            applySM2Rating(grade: .again)
-        }
-    }
-
-    func markAsGuessed() {
-        applySM2Rating(grade: .again)
-    }
-
-    private func applySM2Rating(grade: SM2Scheduler.Grade) {
-        guard let question = currentQuestion else { return }
-
-        if isExamMode {
-            processExamReview(grade: grade)
-            return
-        }
-
-        let cardState = SM2Scheduler.CardState(
-            state: question.sm2State,
-            easeFactor: question.easinessFactor,
-            interval: question.interval,
-            repetitions: question.repetitions,
-            nextReviewAt: question.nextReviewDate
-        )
-
-        let result = sm2Scheduler.reviewCard(cardState: cardState, grade: grade)
-
-        question.sm2State = result.state
-        question.easinessFactor = result.easeFactor
-        question.interval = result.interval
-        question.repetitions = result.repetitions
-        question.nextReviewDate = result.nextReviewAt ?? Date()
-
-        if grade == .again {
-            let insertIndex = min(sessionQueue.count, Int.random(in: 2...6))
-            sessionQueue.insert(question, at: insertIndex)
-            loadNextFromQueue()
-        } else {
-            loadNextFromQueue()
-            learnedTodayCount += 1
-        }
+        let elapsedMs = max(0, Int((now.timeIntervalSince(questionShownAt ?? now)) * 1000.0))
+        let result = scheduler.review(state: card.state, rating: rating, now: now)
 
         do {
-            try DatabaseService.shared.saveQuestion(question)
-
-            let revlog = Revlog(
-                id: UUID(),
-                cardId: question.id,
-                reviewDatetime: Date(),
-                grade: grade.rawValue,
-                timeTaken: 0,
-                preStability: Double(cardState.interval),
-                preDifficulty: cardState.easeFactor
-            )
-            try DatabaseService.shared.saveRevlog(revlog)
-
-            let answeredAt = Date()
-            let timeSpentMs = max(
-                0,
-                Int((answeredAt.timeIntervalSince(questionShownAt ?? answeredAt)) * 1000.0)
-            )
-            let syncEvent = SyncReviewEvent(
-                id: UUID(),
-                cardId: question.backendCardID ?? question.id,
-                selectedOptionID: selectedOptionIDForCurrentSelection(),
-                rating: mapGradeToReviewRating(grade),
-                answeredAt: answeredAt,
-                timeSpentMs: timeSpentMs,
-                createdAt: answeredAt
-            )
-            try DatabaseService.shared.enqueueReviewEvent(syncEvent)
-            submitReviewToBackendIfPossible(syncEvent, question: question)
-
+            try database.saveReview(questionID: card.question.id, chosenOptionID: selectedOptionID, result: result, elapsedMs: elapsedMs)
         } catch {
-            print("❌ SQLite Save error: \(error)")
+            generatedExplanation = "Ошибка сохранения: \(error.localizedDescription)"
         }
 
-        ProgressTracker.shared.logCardStudied()
-        updateCounters()
-        resetSelection()
-    }
-    
-    private func processExamReview(grade: SM2Scheduler.Grade) {
-        guard let question = currentQuestion else { return }
-        if grade == .again {
-            let reinsertIndex = min(examQueue.count, Int.random(in: 15...40))
-            examQueue.insert(question, at: reinsertIndex)
+        if rating == .again {
+            var repeated = card
+            repeated.state = result.state
+            let insertIndex = min(sessionQueue.count, 2)
+            sessionQueue.insert(repeated, at: insertIndex)
         }
-        loadNextExamQuestion()
-        resetSelection()
+
+        completedInSession += 1
+        moveNext()
     }
 
-    private func resetSelection() {
-        userAnswerIndex = nil
-        selectedOptionIndex = nil
-        isCorrect = nil
-        showExplanation = false
+    func refreshSettings() {
+        if let loaded = try? database.loadSettings() {
+            settings = loaded
+        }
     }
-    
-    private func prepareShuffledOptions(for question: Question) {
-        if question.seenAt == nil {
-            question.seenAt = Date()
-            try? DatabaseService.shared.saveQuestion(question)
+
+    private func moveNext() {
+        if sessionQueue.isEmpty {
+            currentCard = nil
+            selectedOptionID = nil
+            revealedRating = nil
+            generatedExplanation = nil
+            questionShownAt = nil
+            return
         }
-        
-        if !question.answerOptions.isEmpty {
-            shuffledAnswerOptions = question.answerOptions.shuffled()
-            shuffledOptions = shuffledAnswerOptions.map(\.text)
-        } else {
-            shuffledAnswerOptions = question.options.enumerated().map { idx, option in
-                AnswerOption(
-                    text: option,
-                    isCorrect: idx == question.correctAnswerIndex,
-                    order: idx
-                )
-            }.shuffled()
-            shuffledOptions = shuffledAnswerOptions.map(\.text)
-        }
+
+        currentCard = sessionQueue.removeFirst()
+        selectedOptionID = nil
+        revealedRating = nil
+        generatedExplanation = nil
+        isLoadingExplanation = false
         questionShownAt = Date()
-        updateCounters()
-    }
-    
-    private func selectedOptionIDForCurrentSelection() -> UUID? {
-        guard let index = selectedOptionIndex,
-              shuffledAnswerOptions.indices.contains(index) else {
-            return nil
-        }
-        return shuffledAnswerOptions[index].id
     }
 
-    private func submitReviewToBackendIfPossible(_ event: SyncReviewEvent, question: Question) {
-        guard question.backendCardID != nil else { return }
-        Task {
-            do {
-                try await StudySyncService().submitReview(question: question, event: event)
-            } catch {
-                print("❌ Backend review sync error: \(error)")
-            }
-        }
-    }
-    
-    private func mapGradeToReviewRating(_ grade: SM2Scheduler.Grade) -> ReviewRating {
-        switch grade {
-        case .again: return .again
-        case .hard: return .hard
-        case .good: return .good
-        case .easy: return .easy
-        }
+    private func loadMistakeExplanation() async {
+        guard let question = currentCard?.question,
+              let selected = selectedOption
+        else { return }
+
+        isLoadingExplanation = true
+        let text = await ragService.explanationForMistake(
+            question: question,
+            chosenOption: selected,
+            settings: settings,
+            includeImageContext: question.imageName != nil
+        )
+        generatedExplanation = text
+        isLoadingExplanation = false
     }
 }

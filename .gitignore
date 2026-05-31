@@ -1,1 +1,21 @@
+# Xcode / Swift
+DerivedData/
+build/
+.build/
+
+# Local build artifacts
 build_output/
+*.log
+
+# User-specific Xcode settings
+*.xcuserstate
+xcuserdata/
+
+# System
+.DS_Store
+
+# Local data exports
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+exports/
