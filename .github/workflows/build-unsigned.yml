@@ -133,11 +133,17 @@ jobs:
           
           python3 update_repo.py
 
+      - name: Prepare Pages Directory
+        run: |
+          mkdir -p public
+          cp apps.json public/
+          cp icon.png public/ || true
+          
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./
+          publish_dir: ./public
           publish_branch: gh-pages
           keep_files: true
           commit_message: "Automated repo manifest update for build ${{ env.BUILD }}"
