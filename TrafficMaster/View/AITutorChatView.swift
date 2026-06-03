@@ -10,12 +10,25 @@ struct AITutorChatView: View {
 
     let context: AITutorQuestionContext
     @Binding var messages: [AITutorChatMessage]
+    let isExpanded: Bool
 
     @State private var inputText = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
 
     private let client = OpenRouterClient.shared
+
+    private var chatBackground: Color {
+        isExpanded ? Color(uiColor: .systemGroupedBackground) : Color.clear
+    }
+
+    private var panelBackground: Color {
+        Color(uiColor: .secondarySystemGroupedBackground).opacity(isExpanded ? 1 : 0.82)
+    }
+
+    private var composerBackground: Color {
+        isExpanded ? Color(uiColor: .systemBackground) : Color.clear
+    }
 
     var body: some View {
         NavigationStack {
@@ -44,7 +57,6 @@ struct AITutorChatView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
                     contextHeader
-                    disclaimerView
 
                     ForEach(visibleMessages) { message in
                         messageBubble(message)
@@ -62,7 +74,7 @@ struct AITutorChatView: View {
                 }
                 .padding(16)
             }
-            .background(Color(uiColor: .systemGroupedBackground))
+            .background(chatBackground)
             .onChange(of: messages.count) { _, _ in
                 scrollToBottom(proxy)
             }
@@ -98,47 +110,48 @@ struct AITutorChatView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(panelBackground, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 
     private var disclaimerView: some View {
-        Label("ИИ может ошибаться. Сверяйте спорные ответы с официальными ПДД РБ.", systemImage: "info.circle.fill")
-            .font(.caption)
+        Label("ИИ может ошибаться", systemImage: "info.circle")
+            .font(.caption2)
             .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 9)
-            .background(Color(uiColor: .tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var composer: some View {
-        HStack(alignment: .bottom, spacing: 10) {
-            TextField("Спросить про правило", text: $inputText, axis: .vertical)
-                .lineLimit(1...4)
-                .textFieldStyle(.plain)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(Color(uiColor: .secondarySystemGroupedBackground), in: Capsule())
-                .disabled(isLoading)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .bottom, spacing: 10) {
+                TextField("Спросить про правило", text: $inputText, axis: .vertical)
+                    .lineLimit(1...4)
+                    .textFieldStyle(.plain)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(panelBackground, in: Capsule())
+                    .disabled(isLoading)
 
-            Button(action: {
-                Task {
-                    await sendUserMessage()
-                }
-            }, label: {
-                Image(systemName: "paperplane.fill")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 40, height: 40)
-                    .background(canSend ? Color.accentColor : Color.gray.opacity(0.55), in: Circle())
-            })
-            .buttonStyle(.plain)
-            .disabled(!canSend)
-            .accessibilityLabel("Отправить вопрос AI-репетитору")
+                Button(action: {
+                    Task {
+                        await sendUserMessage()
+                    }
+                }, label: {
+                    Image(systemName: "paperplane.fill")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 40, height: 40)
+                        .background(canSend ? Color.accentColor : Color.gray.opacity(0.55), in: Circle())
+                })
+                .buttonStyle(.plain)
+                .disabled(!canSend)
+                .accessibilityLabel("Отправить вопрос AI-репетитору")
+            }
+
+            disclaimerView
         }
         .padding(12)
-        .background(Color(uiColor: .systemBackground))
+        .background(composerBackground)
     }
 
     private var canSend: Bool {
@@ -175,7 +188,7 @@ struct AITutorChatView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(Color(uiColor: .secondarySystemGroupedBackground), in: Capsule())
+        .background(panelBackground, in: Capsule())
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -190,7 +203,7 @@ struct AITutorChatView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .background(
-                isUser ? Color.accentColor : Color(uiColor: .secondarySystemGroupedBackground),
+                isUser ? Color.accentColor : panelBackground,
                 in: RoundedRectangle(cornerRadius: 16, style: .continuous)
             )
             .frame(maxWidth: .infinity, alignment: isUser ? .trailing : .leading)
@@ -306,11 +319,31 @@ struct AITutorChatView: View {
 private struct MarkdownText: View {
     let markdown: String
 
+    private var lines: [String] {
+        markdown.components(separatedBy: .newlines)
+    }
+
     var body: some View {
-        if let attributed = try? AttributedString(markdown: markdown) {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                if line.isEmpty {
+                    Color.clear.frame(height: 2)
+                } else {
+                    markdownLine(line)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func markdownLine(_ line: String) -> some View {
+        if let attributed = try? AttributedString(
+            markdown: line,
+            options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        ) {
             Text(attributed)
         } else {
-            Text(markdown)
+            Text(line)
         }
     }
 }
@@ -331,6 +364,7 @@ private struct MarkdownText: View {
         ),
         messages: .constant([
             AITutorChatMessage(role: .assistant, content: "- **Коротко:** правильный ответ - запрещено.\n- Тема: разворот.")
-        ])
+        ]),
+        isExpanded: false
     )
 }

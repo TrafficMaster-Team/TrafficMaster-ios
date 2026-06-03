@@ -126,7 +126,6 @@ final class OpenRouterClient {
             model: model,
             messages: makeMessages(context: context, visibleMessages: visibleMessages),
             temperature: 0.2,
-            maxTokens: 900,
             stream: stream
         )
         request.httpBody = try encoder.encode(payload)
@@ -169,8 +168,8 @@ final class OpenRouterClient {
     private var systemPrompt: String {
         """
         Ты AI-репетитор TrafficMaster для подготовки к экзамену по ПДД Республики Беларусь.
-        Отвечай по-русски, очень кратко и по делу: максимум 5 коротких пунктов.
-        Не используй markdown-заголовки ## и длинные разделы. Можно использовать короткие списки и **жирный** текст.
+        Отвечай по-русски, коротко и по делу; обычно хватает 3-5 коротких пунктов.
+        Не используй markdown-заголовки ## и длинные разделы. Можно использовать короткие списки, переносы строк и **жирный** текст.
         Если пользователь ошибся: 1 коротко почему неверно, 2 почему правильный ответ верный, 3 тема или пункт ПДД РБ.
         Если пользователь ответил правильно: закрепи правило и назови тему или пункт ПДД РБ.
         Указывай точные пункты ПДД РБ только когда уверен; иначе пиши "по смыслу правила" и тему.
@@ -187,7 +186,7 @@ final class OpenRouterClient {
         let explanationText = localExplanation?.isEmpty == false ? localExplanation! : "В карточке нет локального пояснения."
 
         return """
-        Разбери вопрос по ПДД РБ максимально коротко.
+        Разбери вопрос по ПДД РБ коротко, но без потери важного смысла.
 
         Раздел: \(context.sectionTitle ?? "не указан")
         Глава: \(context.chapterTitle ?? "не указана")
@@ -203,7 +202,7 @@ final class OpenRouterClient {
         Результат: \(resultText)
         Локальное пояснение: \(explanationText)
 
-        Формат ответа: 3-5 коротких bullet-пунктов. Без вступления и без длинных цитат.
+        Формат ответа: по возможности 3-5 коротких bullet-пунктов. Без вступления и без длинных цитат.
         """
     }
 
@@ -260,16 +259,7 @@ private struct OpenRouterChatRequest: Encodable {
     let model: String
     let messages: [OpenRouterChatMessage]
     let temperature: Double
-    let maxTokens: Int
     let stream: Bool
-
-    enum CodingKeys: String, CodingKey {
-        case model
-        case messages
-        case temperature
-        case maxTokens = "max_tokens"
-        case stream
-    }
 }
 
 private struct OpenRouterChatMessage: Encodable {

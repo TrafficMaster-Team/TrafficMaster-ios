@@ -14,6 +14,7 @@ struct QuestionView: View {
     @State private var showingExitAlert = false
     @State private var aiTutorContext: AITutorQuestionContext?
     @State private var aiTutorMessages: [String: [AITutorChatMessage]] = [:]
+    @State private var aiTutorDetent: PresentationDetent = .medium
     
     var questions: [Question] = []
     var dailyLimit: Int = 34
@@ -76,17 +77,32 @@ struct QuestionView: View {
             Button("Отмена", role: .cancel) { }
             Button("Выйти", role: .destructive) { dismiss() }
         }
-        .sheet(item: $aiTutorContext) { context in
-            AITutorChatView(context: context, messages: aiTutorMessagesBinding(for: context))
-                .presentationDetents([.medium, .large])
+        .sheet(
+            item: $aiTutorContext,
+            onDismiss: { aiTutorDetent = .medium },
+            content: { context in
+                AITutorChatView(
+                    context: context,
+                    messages: aiTutorMessagesBinding(for: context),
+                    isExpanded: aiTutorDetent == .large
+                )
+                .presentationDetents([.medium, .large], selection: $aiTutorDetent)
                 .presentationDragIndicator(.visible)
-        }
+                .presentationBackground(aiTutorPresentationBackground)
+            }
+        )
         .onAppear {
             viewModel.loadQuestions(dailyNewLimit: dailyLimit)
         }
     }
     
     // MARK: - Subviews
+
+    private var aiTutorPresentationBackground: AnyShapeStyle {
+        aiTutorDetent == .large
+            ? AnyShapeStyle(Color(uiColor: .systemGroupedBackground))
+            : AnyShapeStyle(.ultraThinMaterial)
+    }
     
     private var completionScreen: some View {
         VStack(spacing: 20) {
