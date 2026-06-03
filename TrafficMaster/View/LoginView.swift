@@ -164,6 +164,7 @@ struct LoginView: View {
             profileManager.firstName = cleanFirstName
             profileManager.lastName = cleanLastName
             profileManager.username = cleanUsername
+            profileManager.subscriptionTier = cleanEmail == demoCredentials.email ? .student : .free
             if let avatarData = avatarData {
                 profileManager.avatarData = avatarData
             }
@@ -173,6 +174,7 @@ struct LoginView: View {
                 profileManager.firstName = "Демо"
                 profileManager.lastName = "Пользователь"
                 profileManager.username = demoCredentials.username
+                profileManager.subscriptionTier = .student
                 profileManager.isLoggedIn = true
                 return
             }

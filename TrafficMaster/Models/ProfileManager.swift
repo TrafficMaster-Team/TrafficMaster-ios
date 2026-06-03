@@ -8,6 +8,24 @@
 import Combine
 import SwiftUI
 
+enum SubscriptionTier: String {
+    case free
+    case student
+
+    var title: String {
+        switch self {
+        case .free:
+            "Базовый"
+        case .student:
+            "Ученик"
+        }
+    }
+
+    var isPremium: Bool {
+        self == .student
+    }
+}
+
 class ProfileManager: ObservableObject {
     static let shared = ProfileManager()
     
@@ -15,7 +33,17 @@ class ProfileManager: ObservableObject {
     @AppStorage("firstName") var firstName: String = ""
     @AppStorage("lastName") var lastName: String = ""
     @AppStorage("username") var username: String = ""
-    
+    @AppStorage("subscriptionTier") private var subscriptionTierRawValue: String = SubscriptionTier.free.rawValue
+
+    var subscriptionTier: SubscriptionTier {
+        get { SubscriptionTier(rawValue: subscriptionTierRawValue) ?? .free }
+        set { subscriptionTierRawValue = newValue.rawValue }
+    }
+
+    var hasStudentSubscription: Bool {
+        subscriptionTier.isPremium || username == "demo_driver"
+    }
+
     @Published var avatarData: Data? {
         didSet {
             saveAvatar(data: avatarData)
