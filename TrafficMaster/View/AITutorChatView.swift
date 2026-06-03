@@ -46,12 +46,12 @@ struct AITutorChatView: View {
                     contextHeader
                     disclaimerView
 
-                    ForEach(messages) { message in
+                    ForEach(visibleMessages) { message in
                         messageBubble(message)
                             .id(message.id)
                     }
 
-                    if isLoading {
+                    if isWaitingForFirstAssistantChunk {
                         loadingBubble
                             .id("loading")
                     }
@@ -147,6 +147,17 @@ struct AITutorChatView: View {
 
     private var latestMessageContent: String {
         messages.last?.content ?? ""
+    }
+
+    private var visibleMessages: [AITutorChatMessage] {
+        messages.filter { message in
+            message.role == .user || !message.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+
+    private var isWaitingForFirstAssistantChunk: Bool {
+        guard isLoading, let lastMessage = messages.last else { return false }
+        return lastMessage.role == .assistant && lastMessage.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var hasCompletedAssistantAnswer: Bool {
@@ -283,9 +294,9 @@ struct AITutorChatView: View {
 
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
         withAnimation(.snappy(duration: 0.2)) {
-            if isLoading {
+            if isWaitingForFirstAssistantChunk {
                 proxy.scrollTo("loading", anchor: .bottom)
-            } else if let lastID = messages.last?.id {
+            } else if let lastID = visibleMessages.last?.id {
                 proxy.scrollTo(lastID, anchor: .bottom)
             }
         }

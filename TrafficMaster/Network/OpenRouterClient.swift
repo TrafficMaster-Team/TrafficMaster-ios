@@ -40,7 +40,7 @@ final class OpenRouterClient {
     static let shared = OpenRouterClient()
 
     private let apiKey = "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"
-    private let model = "xiaomi/mimo-v2.5"
+    private let model = "google/gemini-2.5-flash-lite"
     private let endpoint = URL(string: "https://openrouter.ai/api/v1/chat/completions")!
     private let session: URLSession
     private let encoder = JSONEncoder()
@@ -78,6 +78,8 @@ final class OpenRouterClient {
             throw OpenRouterClientError.serverStatus(httpResponse.statusCode, "")
         }
 
+        var didHitTokenLimit = false
+
         for try await line in bytes.lines {
             if Task.isCancelled { throw CancellationError() }
             guard let payload = ssePayload(from: line) else { continue }
@@ -92,6 +94,14 @@ final class OpenRouterClient {
             if let content = chunk.choices.first?.delta.content, !content.isEmpty {
                 await onChunk(content)
             }
+
+            if chunk.choices.contains(where: { $0.finishReason == "length" }) {
+                didHitTokenLimit = true
+            }
+        }
+
+        if didHitTokenLimit {
+            await onChunk("\n\n_Ответ оборвался по лимиту. Спросите уточнение, и я продолжу._")
         }
     }
 
@@ -116,7 +126,7 @@ final class OpenRouterClient {
             model: model,
             messages: makeMessages(context: context, visibleMessages: visibleMessages),
             temperature: 0.2,
-            maxTokens: 420,
+            maxTokens: 900,
             stream: stream
         )
         request.httpBody = try encoder.encode(payload)
@@ -320,16 +330,22 @@ private struct OpenRouterChatResponse: Decodable {
 }
 
 private struct OpenRouterStreamChunk: Decodable {
-    let choices: [Choice]
+    let choices: [OpenRouterStreamChoice]
     let error: OpenRouterAPIError?
+}
 
-    struct Choice: Decodable {
-        let delta: Delta
-    }
+private struct OpenRouterStreamChoice: Decodable {
+    let delta: OpenRouterStreamDelta
+    let finishReason: String?
 
-    struct Delta: Decodable {
-        let content: String?
+    enum CodingKeys: String, CodingKey {
+        case delta
+        case finishReason = "finish_reason"
     }
+}
+
+private struct OpenRouterStreamDelta: Decodable {
+    let content: String?
 }
 
 private struct OpenRouterAPIError: Decodable {
