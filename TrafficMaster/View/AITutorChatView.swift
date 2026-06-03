@@ -9,8 +9,8 @@ struct AITutorChatView: View {
     @Environment(\.dismiss) private var dismiss
 
     let context: AITutorQuestionContext
+    @Binding var messages: [AITutorChatMessage]
 
-    @State private var messages: [AITutorChatMessage] = []
     @State private var inputText = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -44,6 +44,7 @@ struct AITutorChatView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
                     contextHeader
+                    disclaimerView
 
                     ForEach(messages) { message in
                         messageBubble(message)
@@ -63,6 +64,9 @@ struct AITutorChatView: View {
             }
             .background(Color(uiColor: .systemGroupedBackground))
             .onChange(of: messages.count) { _, _ in
+                scrollToBottom(proxy)
+            }
+            .onChange(of: latestMessageContent) { _, _ in
                 scrollToBottom(proxy)
             }
             .onChange(of: isLoading) { _, _ in
@@ -98,6 +102,16 @@ struct AITutorChatView: View {
         .accessibilityElement(children: .combine)
     }
 
+    private var disclaimerView: some View {
+        Label("ИИ может ошибаться. Сверяйте спорные ответы с официальными ПДД РБ.", systemImage: "info.circle.fill")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            .background(Color(uiColor: .tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
     private var composer: some View {
         HStack(alignment: .bottom, spacing: 10) {
             TextField("Спросить про правило", text: $inputText, axis: .vertical)
@@ -131,10 +145,20 @@ struct AITutorChatView: View {
         !isLoading && !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var latestMessageContent: String {
+        messages.last?.content ?? ""
+    }
+
+    private var hasCompletedAssistantAnswer: Bool {
+        messages.contains { message in
+            message.role == .assistant && !message.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+
     private var loadingBubble: some View {
         HStack(spacing: 10) {
             ProgressView()
-            Text("Готовлю объяснение...")
+            Text("Печатаю объяснение...")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
@@ -147,7 +171,7 @@ struct AITutorChatView: View {
     private func messageBubble(_ message: AITutorChatMessage) -> some View {
         let isUser = message.role == .user
 
-        return Text(message.content)
+        return messageBody(message)
             .font(.body)
             .foregroundStyle(isUser ? .white : .primary)
             .textSelection(.enabled)
@@ -160,6 +184,15 @@ struct AITutorChatView: View {
             )
             .frame(maxWidth: .infinity, alignment: isUser ? .trailing : .leading)
             .accessibilityLabel(isUser ? "Ваш вопрос" : "Ответ AI-репетитора")
+    }
+
+    @ViewBuilder
+    private func messageBody(_ message: AITutorChatMessage) -> some View {
+        if message.role == .assistant {
+            MarkdownText(markdown: message.content)
+        } else {
+            Text(message.content)
+        }
     }
 
     private func errorBanner(_ text: String) -> some View {
@@ -177,7 +210,7 @@ struct AITutorChatView: View {
 
     @MainActor
     private func loadInitialExplanationIfNeeded() async {
-        guard messages.isEmpty else { return }
+        guard messages.isEmpty || !hasCompletedAssistantAnswer else { return }
         await requestTutorResponse()
     }
 
@@ -195,16 +228,57 @@ struct AITutorChatView: View {
     private func requestTutorResponse() async {
         guard !isLoading else { return }
 
+        let requestMessages = messages
+        let assistantID = UUID()
+        messages.append(AITutorChatMessage(id: assistantID, role: .assistant, content: ""))
+
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
-            let answer = try await client.sendTutorRequest(context: context, visibleMessages: messages)
-            messages.append(AITutorChatMessage(role: .assistant, content: answer))
+            try await client.streamTutorRequest(context: context, visibleMessages: requestMessages) { chunk in
+                await appendStreamingChunk(chunk, to: assistantID)
+            }
+
+            if messageContent(for: assistantID).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                removeMessage(id: assistantID)
+                throw OpenRouterClientError.emptyResponse
+            }
+        } catch is CancellationError {
+            if messageContent(for: assistantID).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                removeMessage(id: assistantID)
+            }
         } catch {
+            if messageContent(for: assistantID).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                removeMessage(id: assistantID)
+            }
             errorMessage = error.localizedDescription
         }
+    }
+
+    @MainActor
+    private func appendStreamingChunk(_ chunk: String, to messageID: UUID) async {
+        for character in chunk {
+            appendToMessage(id: messageID, chunk: String(character))
+            try? await Task.sleep(nanoseconds: 7_000_000)
+        }
+    }
+
+    @MainActor
+    private func appendToMessage(id: UUID, chunk: String) {
+        guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
+        let message = messages[index]
+        messages[index] = AITutorChatMessage(id: id, role: message.role, content: message.content + chunk)
+    }
+
+    @MainActor
+    private func removeMessage(id: UUID) {
+        messages.removeAll { $0.id == id }
+    }
+
+    private func messageContent(for id: UUID) -> String {
+        messages.first(where: { $0.id == id })?.content ?? ""
     }
 
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
@@ -218,9 +292,22 @@ struct AITutorChatView: View {
     }
 }
 
+private struct MarkdownText: View {
+    let markdown: String
+
+    var body: some View {
+        if let attributed = try? AttributedString(markdown: markdown) {
+            Text(attributed)
+        } else {
+            Text(markdown)
+        }
+    }
+}
+
 #Preview {
     AITutorChatView(
         context: AITutorQuestionContext(
+            id: "preview",
             questionText: "Разрешено ли водителю выполнить разворот в этой ситуации?",
             imageName: nil,
             userAnswer: "Разрешено",
@@ -230,6 +317,9 @@ struct AITutorChatView: View {
             explanation: nil,
             sectionTitle: "Маневрирование",
             chapterTitle: "Разворот"
-        )
+        ),
+        messages: .constant([
+            AITutorChatMessage(role: .assistant, content: "- **Коротко:** правильный ответ - запрещено.\n- Тема: разворот.")
+        ])
     )
 }

@@ -13,6 +13,7 @@ struct QuestionView: View {
     @State private var viewModel = QuestionViewModel()
     @State private var showingExitAlert = false
     @State private var aiTutorContext: AITutorQuestionContext?
+    @State private var aiTutorMessages: [String: [AITutorChatMessage]] = [:]
     
     var questions: [Question] = []
     var dailyLimit: Int = 34
@@ -76,7 +77,7 @@ struct QuestionView: View {
             Button("Выйти", role: .destructive) { dismiss() }
         }
         .sheet(item: $aiTutorContext) { context in
-            AITutorChatView(context: context)
+            AITutorChatView(context: context, messages: aiTutorMessagesBinding(for: context))
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
         }
@@ -367,6 +368,17 @@ private extension QuestionView {
         .accessibilityHint("Показывает разбор вопроса и чат с AI-репетитором")
     }
 
+    func aiTutorMessagesBinding(for context: AITutorQuestionContext) -> Binding<[AITutorChatMessage]> {
+        Binding(
+            get: {
+                aiTutorMessages[context.id, default: []]
+            },
+            set: { newValue in
+                aiTutorMessages[context.id] = newValue
+            }
+        )
+    }
+
     func makeAITutorContext() -> AITutorQuestionContext? {
         guard let question = viewModel.currentQuestion,
               let userAnswer = viewModel.selectedAnswerText,
@@ -376,6 +388,7 @@ private extension QuestionView {
         }
 
         return AITutorQuestionContext(
+            id: aiTutorContextID(question: question, userAnswer: userAnswer, correctAnswer: correctAnswer),
             questionText: question.text,
             imageName: question.imageName,
             userAnswer: userAnswer,
@@ -386,6 +399,10 @@ private extension QuestionView {
             sectionTitle: question.sectionTitle,
             chapterTitle: question.chapterTitle
         )
+    }
+
+    func aiTutorContextID(question: Question, userAnswer: String, correctAnswer: String) -> String {
+        [question.id.uuidString, userAnswer, correctAnswer].joined(separator: "|")
     }
 }
 

@@ -7,7 +7,7 @@ import Foundation
 import UIKit
 
 struct AITutorQuestionContext: Identifiable, Sendable {
-    let id = UUID()
+    let id: String
     let questionText: String
     let imageName: String?
     let userAnswer: String
@@ -54,6 +54,52 @@ final class OpenRouterClient {
         context: AITutorQuestionContext,
         visibleMessages: [AITutorChatMessage]
     ) async throws -> String {
+        var fullAnswer = ""
+        try await streamTutorRequest(context: context, visibleMessages: visibleMessages) { chunk in
+            fullAnswer += chunk
+        }
+        return fullAnswer.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    func streamTutorRequest(
+        context: AITutorQuestionContext,
+        visibleMessages: [AITutorChatMessage],
+        onChunk: @escaping (String) async -> Void
+    ) async throws {
+        var request = try makeRequest(context: context, visibleMessages: visibleMessages, stream: true)
+        request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+
+        let (bytes, response) = try await session.bytes(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw OpenRouterClientError.invalidResponse
+        }
+
+        guard 200..<300 ~= httpResponse.statusCode else {
+            throw OpenRouterClientError.serverStatus(httpResponse.statusCode, "")
+        }
+
+        for try await line in bytes.lines {
+            if Task.isCancelled { throw CancellationError() }
+            guard let payload = ssePayload(from: line) else { continue }
+            if payload == "[DONE]" { break }
+
+            let data = Data(payload.utf8)
+            let chunk = try decoder.decode(OpenRouterStreamChunk.self, from: data)
+            if let apiError = chunk.error {
+                throw OpenRouterClientError.apiError(apiError.message)
+            }
+
+            if let content = chunk.choices.first?.delta.content, !content.isEmpty {
+                await onChunk(content)
+            }
+        }
+    }
+
+    private func makeRequest(
+        context: AITutorQuestionContext,
+        visibleMessages: [AITutorChatMessage],
+        stream: Bool
+    ) throws -> URLRequest {
         guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw OpenRouterClientError.missingAPIKey
         }
@@ -69,27 +115,17 @@ final class OpenRouterClient {
         let payload = OpenRouterChatRequest(
             model: model,
             messages: makeMessages(context: context, visibleMessages: visibleMessages),
-            temperature: 0.25,
-            maxTokens: 900
+            temperature: 0.2,
+            maxTokens: 420,
+            stream: stream
         )
-        let requestBody = try encoder.encode(payload)
-        let (data, response) = try await session.upload(for: request, from: requestBody)
+        request.httpBody = try encoder.encode(payload)
+        return request
+    }
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw OpenRouterClientError.invalidResponse
-        }
-
-        guard 200..<300 ~= httpResponse.statusCode else {
-            let body = String(data: data, encoding: .utf8) ?? ""
-            throw OpenRouterClientError.serverStatus(httpResponse.statusCode, body)
-        }
-
-        let decoded = try decoder.decode(OpenRouterChatResponse.self, from: data)
-        guard let answer = decoded.choices.first?.message.content?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !answer.isEmpty else {
-            throw OpenRouterClientError.emptyResponse
-        }
-        return answer
+    private func ssePayload(from line: String) -> String? {
+        guard line.hasPrefix("data:") else { return nil }
+        return line.dropFirst(5).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func makeMessages(
@@ -108,7 +144,7 @@ final class OpenRouterClient {
 
         messages.append(OpenRouterChatMessage(role: "user", content: .parts(contentParts)))
 
-        for message in visibleMessages {
+        for message in visibleMessages where !message.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             messages.append(
                 OpenRouterChatMessage(
                     role: message.role.rawValue,
@@ -122,13 +158,13 @@ final class OpenRouterClient {
 
     private var systemPrompt: String {
         """
-        Ты AI-репетитор приложения TrafficMaster для подготовки к экзамену по ПДД Республики Беларусь.
-        Отвечай по-русски, спокойно и понятно. Объясняй логику правила, а не просто называй правильный вариант.
-        Если пользователь ошибся, сначала коротко объясни, почему его ответ неверный, затем почему правильный ответ верный.
-        Если пользователь ответил правильно, закрепи правило и объясни, на что смотреть в похожих вопросах.
-        Указывай пункты или темы ПДД РБ только когда можешь уверенно определить их по вопросу и изображению.
-        Если точный пункт неочевиден, честно напиши "по смыслу правила" и назови тему без выдуманного номера.
-        Не давай юридических обещаний; формулируй как учебное объяснение для экзамена.
+        Ты AI-репетитор TrafficMaster для подготовки к экзамену по ПДД Республики Беларусь.
+        Отвечай по-русски, очень кратко и по делу: максимум 5 коротких пунктов.
+        Не используй markdown-заголовки ## и длинные разделы. Можно использовать короткие списки и **жирный** текст.
+        Если пользователь ошибся: 1 коротко почему неверно, 2 почему правильный ответ верный, 3 тема или пункт ПДД РБ.
+        Если пользователь ответил правильно: закрепи правило и назови тему или пункт ПДД РБ.
+        Указывай точные пункты ПДД РБ только когда уверен; иначе пиши "по смыслу правила" и тему.
+        Не давай юридических обещаний; это учебное объяснение для экзамена.
         """
     }
 
@@ -141,7 +177,7 @@ final class OpenRouterClient {
         let explanationText = localExplanation?.isEmpty == false ? localExplanation! : "В карточке нет локального пояснения."
 
         return """
-        Разбери этот экзаменационный вопрос по ПДД РБ.
+        Разбери вопрос по ПДД РБ максимально коротко.
 
         Раздел: \(context.sectionTitle ?? "не указан")
         Глава: \(context.chapterTitle ?? "не указана")
@@ -152,23 +188,12 @@ final class OpenRouterClient {
         Варианты ответа:
         \(answersText)
 
-        Ответ пользователя:
-        \(context.userAnswer)
+        Ответ пользователя: \(context.userAnswer)
+        Правильный ответ: \(context.correctAnswer)
+        Результат: \(resultText)
+        Локальное пояснение: \(explanationText)
 
-        Правильный ответ:
-        \(context.correctAnswer)
-
-        Результат:
-        \(resultText)
-
-        Локальное пояснение из базы:
-        \(explanationText)
-
-        Дай структурированный ответ:
-        1. Короткий вывод.
-        2. Почему так по ПДД РБ.
-        3. Какие пункты или темы правил задействованы.
-        4. Как запомнить для экзамена.
+        Формат ответа: 3-5 коротких bullet-пунктов. Без вступления и без длинных цитат.
         """
     }
 
@@ -202,6 +227,7 @@ enum OpenRouterClientError: LocalizedError {
     case missingAPIKey
     case invalidResponse
     case serverStatus(Int, String)
+    case apiError(String)
     case emptyResponse
 
     var errorDescription: String? {
@@ -212,6 +238,8 @@ enum OpenRouterClientError: LocalizedError {
             "OpenRouter вернул некорректный ответ."
         case let .serverStatus(statusCode, body):
             "OpenRouter вернул статус \(statusCode). \(body)"
+        case let .apiError(message):
+            "OpenRouter остановил поток: \(message)"
         case .emptyResponse:
             "OpenRouter вернул пустое объяснение."
         }
@@ -223,12 +251,14 @@ private struct OpenRouterChatRequest: Encodable {
     let messages: [OpenRouterChatMessage]
     let temperature: Double
     let maxTokens: Int
+    let stream: Bool
 
     enum CodingKeys: String, CodingKey {
         case model
         case messages
         case temperature
         case maxTokens = "max_tokens"
+        case stream
     }
 }
 
@@ -287,4 +317,21 @@ private struct OpenRouterChatResponse: Decodable {
     struct Message: Decodable {
         let content: String?
     }
+}
+
+private struct OpenRouterStreamChunk: Decodable {
+    let choices: [Choice]
+    let error: OpenRouterAPIError?
+
+    struct Choice: Decodable {
+        let delta: Delta
+    }
+
+    struct Delta: Decodable {
+        let content: String?
+    }
+}
+
+private struct OpenRouterAPIError: Decodable {
+    let message: String
 }
