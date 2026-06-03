@@ -14,7 +14,7 @@ struct LearningSection: Identifiable, Sendable {
     let subtitle: String
     let color: Color
     let nodes: [PathNode]
-    
+
     init(id: UUID = UUID(), title: String, subtitle: String, color: Color, nodes: [PathNode]) {
         self.id = id
         self.title = title
@@ -31,7 +31,7 @@ struct PathNode: Identifiable, Sendable {
     let isCurrent: Bool
     let isCompleted: Bool
     let questions: [Question]
-    
+
     init(id: UUID = UUID(), chapterName: String, isLocked: Bool, isCurrent: Bool, isCompleted: Bool, questions: [Question]) {
         self.id = id
         self.chapterName = chapterName
@@ -46,15 +46,16 @@ struct HomeView: View {
     @State private var viewModel = QuestionViewModel()
     @State private var dynamicSections: [LearningSection] = []
     @State private var currentStreak: Int = 0
+    @State private var isShowingStreakSheet = false
     @AppStorage("daily_new_limit") private var dailyNewLimit: Int = 34
     @State private var isLoading = true
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color(UIColor.systemGroupedBackground)
                     .ignoresSafeArea()
-                
+
                 if isLoading && dynamicSections.isEmpty {
                     VStack {
                         ProgressView()
@@ -67,17 +68,19 @@ struct HomeView: View {
                 } else {
                     ScrollView {
                         VStack(spacing: 0) {
-                            TopGamificationBar(streak: currentStreak)
-                                .padding(.top, 10)
-                                .padding(.horizontal, 20)
-                                .padding(.bottom, 10)
-                            
+                            TopGamificationBar(streak: currentStreak) {
+                                isShowingStreakSheet = true
+                            }
+                            .padding(.top, 10)
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 10)
+
                             limitPicker
-                            
+
                             DailyStudyButton(questions: viewModel.allQuestions, dailyLimit: dailyNewLimit)
                                 .padding(.horizontal, 20)
                                 .padding(.bottom, 20)
-                            
+
                             LazyVStack(spacing: 0) {
                                 ForEach(dynamicSections) { section in
                                     SectionView(section: section)
@@ -89,8 +92,15 @@ struct HomeView: View {
                 }
             }
         }
+        .sheet(isPresented: $isShowingStreakSheet) {
+            StreakInsightsSheet(streak: currentStreak)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(32)
+                .presentationBackground(.ultraThinMaterial)
+        }
         .onAppear {
-            currentStreak = ProgressTracker.shared.calculateStreak()
+            refreshProgress()
             viewModel.loadQuestions(dailyNewLimit: dailyNewLimit)
             updateSections()
         }
@@ -98,7 +108,7 @@ struct HomeView: View {
             updateSections()
         }
     }
-    
+
     private var limitPicker: some View {
         HStack {
             Text("Новых карточек в день:")
@@ -119,37 +129,44 @@ struct HomeView: View {
         .padding(.horizontal, 30)
         .padding(.bottom, 10)
     }
-    
+
+    private func refreshProgress() {
+        currentStreak = ProgressTracker.shared.calculateStreak()
+    }
+
     private func updateSections() {
         let questions = viewModel.allQuestions
         guard !questions.isEmpty else { return }
-        
-        self.dynamicSections = HomeView.calculateSectionsStatic(from: questions)
-        self.isLoading = false
+
+        dynamicSections = HomeView.calculateSectionsStatic(from: questions)
+        isLoading = false
+        refreshProgress()
     }
-    
+
     @MainActor
     private static func calculateSectionsStatic(from questions: [Question]) -> [LearningSection] {
         let sectionsDict = Dictionary(grouping: questions, by: { $0.sectionTitle ?? "Раздел 1" })
-        
+
         var sections: [LearningSection] = []
         let colors: [Color] = [.blue, .purple, .orange, .pink]
         var isCurrentAssigned = false
-        
+
         for (secIndex, sectionTitle) in sectionsDict.keys.sorted().enumerated() {
-            let sectionQs = sectionsDict[sectionTitle]!
+            let sectionQs = sectionsDict[sectionTitle] ?? []
             let chaptersDict = Dictionary(grouping: sectionQs, by: { $0.chapterTitle ?? "Глава 1" })
-            
+
             var nodes: [PathNode] = []
             for chapterTitle in chaptersDict.keys.sorted() {
-                let chapterQs = chaptersDict[chapterTitle]!
+                let chapterQs = chaptersDict[chapterTitle] ?? []
                 let isCompleted = chapterQs.allSatisfy { $0.repetitions > 0 }
                 let isCurrent = !isCompleted && !isCurrentAssigned
-                
-                if isCurrent { isCurrentAssigned = true }
-                
+
+                if isCurrent {
+                    isCurrentAssigned = true
+                }
+
                 let isLocked = !isCompleted && !isCurrent
-                
+
                 nodes.append(PathNode(
                     chapterName: chapterTitle,
                     isLocked: isLocked,
@@ -158,7 +175,7 @@ struct HomeView: View {
                     questions: chapterQs
                 ))
             }
-            
+
             sections.append(LearningSection(
                 title: sectionTitle,
                 subtitle: "",
@@ -173,7 +190,7 @@ struct HomeView: View {
 // MARK: - Section View (Unit Header + Nodes)
 struct SectionView: View {
     let section: LearningSection
-    
+
     var body: some View {
         VStack(spacing: 30) {
             VStack(alignment: .leading, spacing: 4) {
@@ -193,7 +210,7 @@ struct SectionView: View {
             )
             .padding(.horizontal, 20)
             .padding(.top, 20)
-            
+
             VStack(spacing: 40) {
                 ForEach(Array(section.nodes.enumerated()), id: \.element.id) { index, node in
                     NodeView(node: node, sectionColor: section.color, index: index)
@@ -209,11 +226,11 @@ struct NodeView: View {
     let node: PathNode
     let sectionColor: Color
     let index: Int
-    
+
     @State private var bounce = false
     @State private var floating = false
     @Environment(\.colorScheme) var colorScheme
-    
+
     var completedTop: Color { colorScheme == .dark ? Color(red: 0.15, green: 0.65, blue: 0.2) : Color.green }
     var completedBottom: Color {
         colorScheme == .dark ? Color(red: 0.05, green: 0.45, blue: 0.1) : Color(red: 0.1, green: 0.6, blue: 0.1)
@@ -226,10 +243,10 @@ struct NodeView: View {
     var lockedBottom: Color {
         colorScheme == .dark ? Color(red: 0.4, green: 0.1, blue: 0.1) : Color(red: 0.6, green: 0.1, blue: 0.1)
     }
-    
+
     var body: some View {
         let xOffset = sin(Double(index) * 1.5) * 60
-        
+
         ZStack {
             if node.isLocked {
                 lockedNode
@@ -241,7 +258,7 @@ struct NodeView: View {
         }
         .offset(x: xOffset)
     }
-    
+
     private var lockedNode: some View {
         ZStack {
             Circle().fill(lockedBottom).frame(width: 70, height: 70).offset(y: 8)
@@ -250,7 +267,7 @@ struct NodeView: View {
         }
         .scaleEffect(y: 0.85)
     }
-    
+
     private var completedNode: some View {
         NavigationLink(destination: QuestionView(questions: node.questions)) {
             ZStack {
@@ -262,7 +279,7 @@ struct NodeView: View {
         }
         .buttonStyle(SquishyNodeButtonStyle())
     }
-    
+
     private var currentNode: some View {
         NavigationLink(destination: QuestionView(questions: node.questions)) {
             ZStack {
@@ -272,12 +289,12 @@ struct NodeView: View {
                         .frame(width: 100, height: 100)
                         .scaleEffect(bounce ? 1.4 : 1.0)
                         .opacity(bounce ? 0 : 1)
-                    
+
                     Circle()
                         .fill(currentBottom)
                         .frame(width: 100, height: 100)
                         .offset(y: 12)
-                    
+
                     Circle()
                         .fill(currentTop)
                         .frame(width: 100, height: 100)
@@ -289,7 +306,7 @@ struct NodeView: View {
                         )
                 }
                 .scaleEffect(y: 0.85)
-                
+
                 VStack {
                     Text("START")
                         .font(.system(.caption, design: .rounded, weight: .bold))
@@ -306,8 +323,12 @@ struct NodeView: View {
         }
         .buttonStyle(SquishyNodeButtonStyle())
         .onAppear {
-            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: false)) { bounce.toggle() }
-            withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) { floating.toggle() }
+            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: false)) {
+                bounce.toggle()
+            }
+            withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
+                floating.toggle()
+            }
         }
     }
 }
@@ -323,22 +344,34 @@ struct SquishyNodeButtonStyle: ButtonStyle {
 
 struct TopGamificationBar: View {
     let streak: Int
+    let onStreakTap: () -> Void
+
     var body: some View {
         HStack {
             Image(systemName: "flag.checkered.circle.fill")
                 .foregroundColor(.orange)
                 .font(.title2)
             Spacer()
-            HStack(spacing: 4) {
-                Image(systemName: "flame.fill").foregroundColor(.orange)
-                Text("\(streak)")
-                    .font(.system(.headline, design: .rounded, weight: .bold))
-                    .foregroundColor(.orange)
+            Button(action: onStreakTap) {
+                HStack(spacing: 6) {
+                    Image(systemName: "flame.fill")
+                        .foregroundColor(.orange)
+                    Text("\(streak)")
+                        .font(.system(.headline, design: .rounded, weight: .bold))
+                        .foregroundColor(.orange)
+                    Image(systemName: "sparkles")
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(.orange.opacity(0.8))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.orange.opacity(0.15))
+                .clipShape(Capsule())
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Color.orange.opacity(0.15))
-            .clipShape(Capsule())
+            .buttonStyle(.plain)
+            .accessibilityLabel("Стрик")
+            .accessibilityValue("\(streak) дней подряд")
+            .accessibilityHint("Открывает подробности активности и ачивки")
         }
         .padding()
         .background(.ultraThinMaterial)
@@ -353,11 +386,11 @@ struct TopGamificationBar: View {
 struct DailyStudyButton: View {
     let questions: [Question]
     let dailyLimit: Int
-    
+
     var body: some View {
         let questionCount = questions.count
         let destination = QuestionView(questions: questions, dailyLimit: dailyLimit)
-        
+
         NavigationLink(destination: destination) {
             HStack(spacing: 16) {
                 ZStack {
@@ -373,7 +406,7 @@ struct DailyStudyButton: View {
                     Text("Продолжить обучение")
                         .font(.system(.headline, design: .rounded, weight: .bold))
                         .foregroundColor(.primary)
-                    
+
                     if questionCount > 0 {
                         Text("Сессия до 20 минут, новых: \(dailyLimit)")
                             .font(.system(.caption, design: .rounded, weight: .medium))
