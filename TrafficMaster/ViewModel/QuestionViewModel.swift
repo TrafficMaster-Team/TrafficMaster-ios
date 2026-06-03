@@ -71,7 +71,28 @@ class QuestionViewModel {
     var showGuessedButton: Bool {
         userAnswerIndex != nil && isCorrect == true
     }
-    
+
+    var selectedAnswerText: String? {
+        guard let selectedOptionIndex,
+              shuffledOptions.indices.contains(selectedOptionIndex) else {
+            return nil
+        }
+        return shuffledOptions[selectedOptionIndex]
+    }
+
+    var correctAnswerText: String? {
+        if let correctIndex = correctAnswerIndexInShuffled,
+           shuffledOptions.indices.contains(correctIndex) {
+            return shuffledOptions[correctIndex]
+        }
+
+        guard let question = currentQuestion,
+              question.options.indices.contains(question.correctAnswerIndex) else {
+            return nil
+        }
+        return question.options[question.correctAnswerIndex]
+    }
+
     private func updateCounters() {
         // Anki-like tiers:
         // Blue: never seen, Red: seen but not yet graduated, Green: review/strengthening

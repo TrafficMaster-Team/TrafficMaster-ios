@@ -9,8 +9,10 @@ import SwiftUI
 
 struct QuestionView: View {
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var profileManager = ProfileManager.shared
     @State private var viewModel = QuestionViewModel()
     @State private var showingExitAlert = false
+    @State private var aiTutorContext: AITutorQuestionContext?
     
     var questions: [Question] = []
     var dailyLimit: Int = 34
@@ -72,6 +74,11 @@ struct QuestionView: View {
         .alert("Вы действительно хотите выйти?", isPresented: $showingExitAlert) {
             Button("Отмена", role: .cancel) { }
             Button("Выйти", role: .destructive) { dismiss() }
+        }
+        .sheet(item: $aiTutorContext) { context in
+            AITutorChatView(context: context)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
         .onAppear {
             viewModel.loadQuestions(dailyNewLimit: dailyLimit)
@@ -239,10 +246,7 @@ struct QuestionView: View {
         VStack {
             Spacer()
             VStack(spacing: 12) {
-                if viewModel.showGuessedButton {
-                    guessedButton
-                }
-                
+                answerSupportButtons
                 continueButton
             }
             .padding(.horizontal, 20)
@@ -319,6 +323,69 @@ struct QuestionView: View {
             }
         }
         return AnyShapeStyle(Color(UIColor.secondarySystemBackground))
+    }
+}
+
+private extension QuestionView {
+    @ViewBuilder
+    var answerSupportButtons: some View {
+        if viewModel.showGuessedButton || profileManager.hasStudentSubscription {
+            HStack(spacing: 12) {
+                if viewModel.showGuessedButton {
+                    guessedButton
+                }
+
+                if !viewModel.showGuessedButton {
+                    Spacer(minLength: 0)
+                }
+
+                if profileManager.hasStudentSubscription {
+                    aiTutorButton
+                }
+            }
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
+    var aiTutorButton: some View {
+        Button(action: {
+            Haptics.impact(.light)
+            aiTutorContext = makeAITutorContext()
+        }, label: {
+            Image(systemName: "sparkles")
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 56, height: 56)
+                .background(
+                    LinearGradient(colors: [.blue, .cyan], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    in: Circle()
+                )
+                .shadow(color: .blue.opacity(0.3), radius: 10, x: 0, y: 4)
+        })
+        .buttonStyle(.plain)
+        .accessibilityLabel("Открыть AI-объяснение")
+        .accessibilityHint("Показывает разбор вопроса и чат с AI-репетитором")
+    }
+
+    func makeAITutorContext() -> AITutorQuestionContext? {
+        guard let question = viewModel.currentQuestion,
+              let userAnswer = viewModel.selectedAnswerText,
+              let correctAnswer = viewModel.correctAnswerText,
+              let isCorrect = viewModel.isCorrect else {
+            return nil
+        }
+
+        return AITutorQuestionContext(
+            questionText: question.text,
+            imageName: question.imageName,
+            userAnswer: userAnswer,
+            correctAnswer: correctAnswer,
+            allAnswers: viewModel.shuffledOptions,
+            isCorrect: isCorrect,
+            explanation: question.explanation,
+            sectionTitle: question.sectionTitle,
+            chapterTitle: question.chapterTitle
+        )
     }
 }
 
