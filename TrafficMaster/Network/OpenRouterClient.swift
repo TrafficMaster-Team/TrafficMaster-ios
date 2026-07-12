@@ -39,7 +39,7 @@ struct AITutorChatMessage: Identifiable, Equatable, Sendable {
 final class OpenRouterClient {
     static let shared = OpenRouterClient()
 
-    private let apiKey = "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"
+    private let apiKey = "YOUR_API_KEY" // Вставьте сюда свой API ключ
     private let model = "google/gemini-2.5-flash-lite"
     private let endpoint = URL(string: "https://openrouter.ai/api/v1/chat/completions")!
     private let session: URLSession

@@ -162,6 +162,18 @@ struct LoginView: View {
         isSubmitting = true
         defer { isSubmitting = false }
 
+        if cleanEmail == demoCredentials.email && password == demoCredentials.password {
+            profileManager.firstName = "Демо"
+            profileManager.lastName = "Пользователь"
+            profileManager.username = demoCredentials.username
+            profileManager.subscriptionTier = .student
+            if let avatarData = avatarData {
+                profileManager.avatarData = avatarData
+            }
+            profileManager.isLoggedIn = true
+            return
+        }
+
         do {
             _ = try await apiClient.signUp(payload: APISignUpRequest(email: cleanEmail, name: displayName, password: password))
             _ = try await apiClient.logIn(payload: APILoginRequest(email: cleanEmail, password: password))
@@ -175,15 +187,6 @@ struct LoginView: View {
             }
             profileManager.isLoggedIn = true
         } catch {
-            if cleanEmail == demoCredentials.email && password == demoCredentials.password {
-                profileManager.firstName = "Демо"
-                profileManager.lastName = "Пользователь"
-                profileManager.username = demoCredentials.username
-                profileManager.subscriptionTier = .student
-                profileManager.isLoggedIn = true
-                return
-            }
-
             errorMessage = error.localizedDescription
             showErrorAlert = true
         }
