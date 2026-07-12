@@ -22,7 +22,7 @@ struct StatisticsView: View {
         return [
             CardStatus(type: "Новые", count: newCards, color: .blue),
             CardStatus(type: "Изучаемые", count: learningCards, color: .orange),
-            CardStatus(type: "Закрепленные", count: retainedCards, color: .green)
+            CardStatus(type: "Закрепленные", count: retainedCards, color: .green),
         ]
     }
     

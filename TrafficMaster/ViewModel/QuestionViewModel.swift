@@ -263,7 +263,6 @@ class QuestionViewModel {
             )
             try DatabaseService.shared.enqueueReviewEvent(syncEvent)
             submitReviewToBackendIfPossible(syncEvent, question: question)
-
         } catch {
             print("❌ SQLite Save error: \(error)")
         }

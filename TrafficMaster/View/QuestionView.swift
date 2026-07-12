@@ -24,7 +24,7 @@ struct QuestionView: View {
             LinearGradient(
                 colors: [
                     Color(uiColor: .systemBackground),
-                    Color(uiColor: .secondarySystemGroupedBackground)
+                    Color(uiColor: .secondarySystemGroupedBackground),
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing

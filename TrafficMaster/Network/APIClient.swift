@@ -44,7 +44,7 @@ final class APIClient {
         let path = "v1/decks/\(deckID.uuidString)/cards"
         let url = try makeURL(path: path, queryItems: [
             URLQueryItem(name: "limit", value: String(limit)),
-            URLQueryItem(name: "offset", value: String(offset))
+            URLQueryItem(name: "offset", value: String(offset)),
         ])
         return try await send(makeRequest(url: url, method: .get), decodeAs: [APICard].self)
     }

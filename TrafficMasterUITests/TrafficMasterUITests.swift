@@ -48,7 +48,10 @@ final class TrafficMasterUITests: XCTestCase {
         let nextButton = app.buttons["Дальше"]
         let guessedButton = app.buttons["Ответил наугад 🤔"]
         
-        XCTAssertTrue(nextButton.waitForExistence(timeout: 2) || guessedButton.waitForExistence(timeout: 2), "Кнопки действий не появились после выбора ответа")
+        XCTAssertTrue(
+            nextButton.waitForExistence(timeout: 2) || guessedButton.waitForExistence(timeout: 2),
+            "Кнопки действий не появились после выбора ответа"
+        )
         
         if nextButton.exists {
             nextButton.tap()

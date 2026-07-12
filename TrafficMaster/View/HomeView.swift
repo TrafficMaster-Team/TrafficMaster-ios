@@ -79,6 +79,10 @@ struct HomeView: View {
 
                             DailyStudyButton(questions: viewModel.allQuestions, dailyLimit: dailyNewLimit)
                                 .padding(.horizontal, 20)
+                                .padding(.bottom, 10)
+                                
+                            NotebookLMStudyButton()
+                                .padding(.horizontal, 20)
                                 .padding(.bottom, 20)
 
                             LazyVStack(spacing: 0) {
@@ -431,6 +435,60 @@ struct DailyStudyButton: View {
         .buttonStyle(SquishyNodeButtonStyle())
         .disabled(questionCount == 0)
         .opacity(questionCount == 0 ? 0.5 : 1.0)
+    }
+}
+
+struct NotebookLMStudyButton: View {
+    @StateObject private var store = NotebookLMQuizStore.shared
+    @State private var selectedQuiz: NotebookLMQuiz?
+    
+    var body: some View {
+        Button(action: {
+            if let randomQuiz = store.quizzes.randomElement() {
+                selectedQuiz = randomQuiz
+            }
+        }, label: {
+            HStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(LinearGradient(colors: [.purple, .indigo], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .frame(width: 50, height: 50)
+                    
+                    Image(systemName: "brain.head.profile")
+                        .font(.title2)
+                        .foregroundColor(.white)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("AI Тесты (NotebookLM)")
+                        .font(.system(.headline, design: .rounded, weight: .bold))
+                        .foregroundColor(.primary)
+                    
+                    if store.quizzes.isEmpty {
+                        Text("Загрузка...")
+                            .font(.system(.caption, design: .rounded, weight: .medium))
+                            .foregroundColor(.purple)
+                    } else {
+                        Text("\(store.quizzes.count) умных опросов готово!")
+                            .font(.system(.caption, design: .rounded, weight: .medium))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundColor(.secondary)
+                    .padding(.trailing, 8)
+            }
+            .padding(12)
+            .background(Color(UIColor.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .shadow(color: .purple.opacity(0.15), radius: 10, x: 0, y: 5)
+        })
+        .buttonStyle(SquishyNodeButtonStyle())
+        .disabled(store.quizzes.isEmpty)
+        .navigationDestination(item: $selectedQuiz) { quiz in
+            NotebookLMQuestionView(topic: quiz.topic ?? quiz.title ?? "Тест", questions: quiz.questions)
+        }
     }
 }
 
