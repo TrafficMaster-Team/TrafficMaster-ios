@@ -27,6 +27,8 @@ struct QuestionImportDTO: Codable {
 }
 
 @main
+// The product name is a proper noun and must remain unchanged.
+// swiftlint:disable:next inclusive_language
 struct TrafficMasterApp: App {
     // Current DB Version
     static let dbVersion = 11 // v11: Normalize chapters/applications to official RB traffic rules titles
@@ -57,7 +59,8 @@ struct TrafficMasterApp: App {
         23: "Глава 23. Перевозка пассажиров.",
         24: "Глава 24. Перевозка грузов.",
         25: "Глава 25. Буксировка механических транспортных средств.",
-        26: "Глава 26. Основные положения о допуске транспортных средств к участию в дорожном движении, их техническое состояние, оборудование.",
+        26: "Глава 26. Основные положения о допуске транспортных средств к участию " +
+            "в дорожном движении, их техническое состояние, оборудование.",
         27: "Глава 27. Обязанности должностных и иных лиц по обеспечению безопасности дорожного движения."
     ]
     
@@ -129,7 +132,7 @@ struct TrafficMasterApp: App {
         if rawChapter.contains("Приложение"), let number = extractLeadingNumber(from: rawChapter) {
             let section = "Приложения к Правилам дорожного движения"
             let base = Self.appendixTitles[number] ?? "Приложение \(number)."
-            if let rawPart, (rawPart.contains("Параграф") || rawPart.contains("Часть")) {
+            if let rawPart, rawPart.contains("Параграф") || rawPart.contains("Часть") {
                 return (section, "\(base) (\(rawPart))")
             }
             return (section, base)
@@ -138,7 +141,8 @@ struct TrafficMasterApp: App {
         return (defaultSection, defaultChapter)
     }
     
-    // Optimized Background Data Import using SQLite
+    // The import is intentionally linear to keep every migration step auditable.
+    // swiftlint:disable:next function_body_length
     private func importDataIfNeeded() async {
         let savedDBVersion = UserDefaults.standard.integer(forKey: "db_version")
         guard savedDBVersion < TrafficMasterApp.dbVersion else { 
@@ -158,9 +162,9 @@ struct TrafficMasterApp: App {
             
             // Create a lookup dictionary
             var existingMap: [String: Question] = [:]
-            for q in existingQuestions {
-                let key = "\(q.text)|\(q.sectionTitle ?? "")|\(q.chapterTitle ?? "")"
-                existingMap[key] = q
+            for question in existingQuestions {
+                let key = "\(question.text)|\(question.sectionTitle ?? "")|\(question.chapterTitle ?? "")"
+                existingMap[key] = question
             }
 
             // 2. Load JSON from Asset Catalog

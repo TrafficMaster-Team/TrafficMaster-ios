@@ -52,7 +52,10 @@ struct ExamModeSettingsView: View {
                     Text("Режим подготовки")
                 } footer: {
                     if isEnabled {
-                        Text("В этом режиме SM-2 приостанавливается. Все билеты будут показываться повторно для закрепления краткосрочной памяти.")
+                        Text(
+                            "В этом режиме SM-2 приостанавливается. " +
+                            "Все билеты будут показываться повторно для закрепления краткосрочной памяти."
+                        )
                     }
                 }
                 
@@ -143,7 +146,7 @@ struct ExamModeSettingsView: View {
                     Text("Выучено")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Text("\(Int(stats.masteryPercentage))%")
+                    Text("\(Int(stats.retentionPercentage))%")
                         .font(.title2)
                         .fontWeight(.bold)
                 }

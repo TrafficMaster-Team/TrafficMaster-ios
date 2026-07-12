@@ -17,12 +17,12 @@ struct StatisticsView: View {
     var collectionData: [CardStatus] {
         let newCards = allQuestions.filter { $0.repetitions == 0 }.count
         let learningCards = allQuestions.filter { $0.repetitions > 0 && $0.repetitions < 10 }.count
-        let masteredCards = allQuestions.filter { $0.repetitions >= 10 }.count
+        let retainedCards = allQuestions.filter { $0.repetitions >= 10 }.count
         
         return [
             CardStatus(type: "Новые", count: newCards, color: .blue),
             CardStatus(type: "Изучаемые", count: learningCards, color: .orange),
-            CardStatus(type: "Закрепленные", count: masteredCards, color: .green)
+            CardStatus(type: "Закрепленные", count: retainedCards, color: .green)
         ]
     }
     
@@ -172,7 +172,11 @@ struct StatisticsView: View {
                                             .fill(activityColor(for: activityLevel))
                                             .aspectRatio(1, contentMode: .fit)
                                             .scaleEffect(animateCharts ? 1 : 0)
-                                            .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(Double(index) * 0.01), value: animateCharts)
+                                            .animation(
+                                                .spring(response: 0.5, dampingFraction: 0.7)
+                                                    .delay(Double(index) * 0.01),
+                                                value: animateCharts
+                                            )
                                     }
                                 }
                             }
@@ -222,7 +226,12 @@ struct StatisticsView: View {
                                                             
                                                             Capsule()
                                                                 .fill(Color.red)
-                                                                .frame(width: animateCharts ? geometry.size.width * CGFloat(topic.errorRate) / 100 : 0, height: 6)
+                                                                .frame(
+                                                                    width: animateCharts
+                                                                        ? geometry.size.width * CGFloat(topic.errorRate) / 100
+                                                                        : 0,
+                                                                    height: 6
+                                                                )
                                                         }
                                                     }
                                                     .frame(height: 6)

@@ -1,5 +1,7 @@
 import SwiftUI
 
+// The product name is a proper noun and must remain unchanged.
+// swiftlint:disable:next inclusive_language
 struct TrafficMasterCommands: Commands {
     @ObservedObject var navigationState: AppNavigationState
 

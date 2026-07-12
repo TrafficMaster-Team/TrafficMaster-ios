@@ -41,9 +41,9 @@ class ExamFilterService {
     }
     
     private func filterWeakTopics(from questions: [Question]) -> [Question] {
-        return questions.filter { q in
-            let isLowRetrievability = q.retrievability < 0.7
-            let hasDifficulty = q.difficulty > 7.0
+        return questions.filter { question in
+            let isLowRetrievability = question.retrievability < 0.7
+            let hasDifficulty = question.difficulty > 7.0
             return isLowRetrievability || hasDifficulty
         }.shuffled()
     }
@@ -67,7 +67,7 @@ class ExamFilterService {
         let allQuestions = try database.fetchAllQuestions()
         
         let totalCards = allQuestions.count
-        let masteredCards = allQuestions.filter { $0.retrievability >= 0.9 }.count
+        let retainedCards = allQuestions.filter { $0.retrievability >= 0.9 }.count
         let learningCards = allQuestions.filter { $0.retrievability >= 0.5 && $0.retrievability < 0.9 }.count
         let weakCards = allQuestions.filter { $0.retrievability < 0.5 }.count
         
@@ -75,7 +75,7 @@ class ExamFilterService {
         
         return ExamReadinessStats(
             totalCards: totalCards,
-            masteredCards: masteredCards,
+            retainedCards: retainedCards,
             learningCards: learningCards,
             weakCards: weakCards,
             avgRetrievability: avgRetrievability,
@@ -90,7 +90,7 @@ class ExamFilterService {
 
 struct ExamReadinessStats {
     let totalCards: Int
-    let masteredCards: Int
+    let retainedCards: Int
     let learningCards: Int
     let weakCards: Int
     let avgRetrievability: Double
@@ -98,9 +98,9 @@ struct ExamReadinessStats {
     let daysUntilExam: Int?
     let dailyCardLimit: Int
     
-    var masteryPercentage: Double {
+    var retentionPercentage: Double {
         guard totalCards > 0 else { return 0 }
-        return Double(masteredCards) / Double(totalCards) * 100
+        return Double(retainedCards) / Double(totalCards) * 100
     }
     
     var readinessMessage: String {

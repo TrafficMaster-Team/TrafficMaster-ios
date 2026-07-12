@@ -8,8 +8,13 @@
 import Foundation
 import SQLite3
 
+// SQLite persistence is kept together to make schema and column mappings auditable.
+// swiftlint:disable file_length
+
+// swiftlint:disable type_body_length
 /// Сервис для работы с SQLite базой данных
 class DatabaseService {
+    // swiftlint:enable type_body_length
 
     static let shared = DatabaseService()
 
@@ -117,7 +122,9 @@ class DatabaseService {
     
     // MARK: - Question Operations
     
-    func saveQuestion(_ q: Question) throws {
+    // Each branch maps an optional model field to its SQLite column.
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
+    func saveQuestion(_ question: Question) throws {
         let query = """
         INSERT OR REPLACE INTO questions (
             id, text, options, correct_answer_index, explanation, image_name,
@@ -132,51 +139,51 @@ class DatabaseService {
             throw DatabaseError.prepareFailed(getErrorMessage())
         }
         
-        sqlite3_bind_text(statement, 1, q.id.uuidString, -1, Self.sqliteTransient)
-        sqlite3_bind_text(statement, 2, q.text, -1, Self.sqliteTransient)
+        sqlite3_bind_text(statement, 1, question.id.uuidString, -1, Self.sqliteTransient)
+        sqlite3_bind_text(statement, 2, question.text, -1, Self.sqliteTransient)
 
-        let optionsData = try JSONEncoder().encode(q.options)
+        let optionsData = try JSONEncoder().encode(question.options)
         guard let optionsStr = String(data: optionsData, encoding: .utf8) else {
             throw DatabaseError.executeFailed("Failed to encode options as UTF-8")
         }
         sqlite3_bind_text(statement, 3, optionsStr, -1, Self.sqliteTransient)
         
-        sqlite3_bind_int(statement, 4, Int32(q.correctAnswerIndex))
+        sqlite3_bind_int(statement, 4, Int32(question.correctAnswerIndex))
         
-        if let explanation = q.explanation {
+        if let explanation = question.explanation {
             sqlite3_bind_text(statement, 5, explanation, -1, Self.sqliteTransient)
         } else {
             sqlite3_bind_null(statement, 5)
         }
 
-        if let imageName = q.imageName {
+        if let imageName = question.imageName {
             sqlite3_bind_text(statement, 6, imageName, -1, Self.sqliteTransient)
         } else {
             sqlite3_bind_null(statement, 6)
         }
 
-        if let st = q.sectionTitle {
+        if let st = question.sectionTitle {
             sqlite3_bind_text(statement, 7, st, -1, Self.sqliteTransient)
         } else {
             sqlite3_bind_null(statement, 7)
         }
 
-        if let ct = q.chapterTitle {
+        if let ct = question.chapterTitle {
             sqlite3_bind_text(statement, 8, ct, -1, Self.sqliteTransient)
         } else {
             sqlite3_bind_null(statement, 8)
         }
         
-        sqlite3_bind_double(statement, 9, q.stability)
-        sqlite3_bind_double(statement, 10, q.difficulty)
-        sqlite3_bind_double(statement, 11, q.retrievability)
-        sqlite3_bind_int(statement, 12, Int32(q.repetitions))
-        sqlite3_bind_int(statement, 13, Int32(q.interval))
-        sqlite3_bind_double(statement, 14, q.easinessFactor)
-        sqlite3_bind_double(statement, 15, q.nextReviewDate.timeIntervalSince1970)
+        sqlite3_bind_double(statement, 9, question.stability)
+        sqlite3_bind_double(statement, 10, question.difficulty)
+        sqlite3_bind_double(statement, 11, question.retrievability)
+        sqlite3_bind_int(statement, 12, Int32(question.repetitions))
+        sqlite3_bind_int(statement, 13, Int32(question.interval))
+        sqlite3_bind_double(statement, 14, question.easinessFactor)
+        sqlite3_bind_double(statement, 15, question.nextReviewDate.timeIntervalSince1970)
         
-        if !q.answerOptions.isEmpty {
-            let answerOptionsData = try JSONEncoder().encode(q.answerOptions)
+        if !question.answerOptions.isEmpty {
+            let answerOptionsData = try JSONEncoder().encode(question.answerOptions)
             guard let answerOptionsJSON = String(data: answerOptionsData, encoding: .utf8) else {
                 throw DatabaseError.executeFailed("Failed to encode answer options as UTF-8")
             }
@@ -185,27 +192,27 @@ class DatabaseService {
             sqlite3_bind_null(statement, 16)
         }
         
-        if let backendCardID = q.backendCardID {
+        if let backendCardID = question.backendCardID {
             sqlite3_bind_text(statement, 17, backendCardID.uuidString, -1, Self.sqliteTransient)
         } else {
             sqlite3_bind_null(statement, 17)
         }
         
-        if let backendDeckID = q.backendDeckID {
+        if let backendDeckID = question.backendDeckID {
             sqlite3_bind_text(statement, 18, backendDeckID.uuidString, -1, Self.sqliteTransient)
         } else {
             sqlite3_bind_null(statement, 18)
         }
 
-        if let backendCardProgressID = q.backendCardProgressID {
+        if let backendCardProgressID = question.backendCardProgressID {
             sqlite3_bind_text(statement, 19, backendCardProgressID.uuidString, -1, Self.sqliteTransient)
         } else {
             sqlite3_bind_null(statement, 19)
         }
 
-        sqlite3_bind_text(statement, 20, q.sm2State.rawValue, -1, Self.sqliteTransient)
+        sqlite3_bind_text(statement, 20, question.sm2State.rawValue, -1, Self.sqliteTransient)
         
-        if let seenAt = q.seenAt {
+        if let seenAt = question.seenAt {
             sqlite3_bind_double(statement, 21, seenAt.timeIntervalSince1970)
         } else {
             sqlite3_bind_null(statement, 21)
@@ -265,7 +272,11 @@ class DatabaseService {
     // MARK: - Revlog Operations
     
     func saveRevlog(_ revlog: Revlog) throws {
-        let query = "INSERT INTO revlogs (id, card_id, review_datetime, grade, time_taken, pre_stability, pre_difficulty) VALUES (?, ?, ?, ?, ?, ?, ?)"
+        let query = """
+        INSERT INTO revlogs (
+            id, card_id, review_datetime, grade, time_taken, pre_stability, pre_difficulty
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        """
         
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK else {
@@ -445,6 +456,8 @@ class DatabaseService {
         return count
     }
     
+    // Decoding stays linear so every SQLite column remains visible beside its model field.
+    // swiftlint:disable:next function_body_length
     private func parseQuestion(statement: OpaquePointer?) throws -> Question {
         guard let statement = statement else {
             throw DatabaseError.executeFailed("Statement is nil")

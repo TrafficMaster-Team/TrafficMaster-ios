@@ -11,7 +11,12 @@ import SwiftUI
 struct LoginView: View {
     @StateObject private var profileManager = ProfileManager.shared
     private let apiClient = APIClient.shared
-    private let demoCredentials = (email: "demo@trafficmaster.local", password: "DemoPass123", name: "Демо Пользователь", username: "demo_driver")
+    private let demoCredentials = (
+        email: "demo@trafficmaster.local",
+        password: "DemoPass123",
+        name: "Демо Пользователь",
+        username: "demo_driver"
+    )
     
     @State private var firstName: String = ""
     @State private var lastName: String = ""

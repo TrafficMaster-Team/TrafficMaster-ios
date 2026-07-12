@@ -12,7 +12,7 @@ struct ContentView: View {
     @State private var viewModel = QuestionViewModel()
     @State private var isLoggedIn = false
     @State private var showLogin = false
-    @State private var errorMessage: String? = nil
+    @State private var errorMessage: String?
     @State private var hasLoadedQuestions = false
     @AppStorage("daily_new_cards_limit") private var dailyNewCardsLimit = 34
     @AppStorage("enable_study_notifications") private var enableStudyNotifications = true
