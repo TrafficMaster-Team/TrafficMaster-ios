@@ -131,4 +131,7 @@ iOSInjectionProject/
 /*.gcno
 **/xcshareddata/WorkspaceSettings.xcsettings
 
+# Generated NotebookLM batches are reviewed before being added to the app
+/GeneratedQuestions/notebooklm_raw/
+
 # End of https://www.toptal.com/developers/gitignore/api/macos,xcode,swift
