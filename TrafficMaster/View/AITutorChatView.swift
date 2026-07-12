@@ -33,6 +33,10 @@ struct AITutorChatView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                Text("Ответы сгенерированы ИИ и могут быть неточными")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .padding(.vertical, 4)
                 chatTranscript
                 Divider()
                 composer

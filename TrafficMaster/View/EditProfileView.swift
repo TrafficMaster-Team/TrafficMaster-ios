@@ -17,6 +17,7 @@ struct EditProfileView: View {
     @State private var username: String = ""
     @State private var showImagePicker = false
     @State private var avatarData: Data?
+    @State private var showingDeleteAlert = false
     
     var body: some View {
         NavigationStack {
@@ -63,6 +64,25 @@ struct EditProfileView: View {
                     TextField("Имя пользователя (ник)", text: $username)
                         .autocapitalization(.none)
                 }
+                
+                Section {
+                    Button(role: .destructive) {
+                        showingDeleteAlert = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "trash")
+                            Text("Удалить аккаунт")
+                        }
+                    }
+                }
+            }
+            .alert("Удаление аккаунта", isPresented: $showingDeleteAlert) {
+                Button("Отмена", role: .cancel) { }
+                Button("Удалить", role: .destructive) {
+                    profileManager.logout()
+                }
+            } message: {
+                Text("Это действие необратимо. Все ваши данные будут удалены.")
             }
             .listStyle(.insetGrouped)
             .navigationTitle("Редактирование")

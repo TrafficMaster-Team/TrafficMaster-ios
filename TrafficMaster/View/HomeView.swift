@@ -459,7 +459,7 @@ struct NotebookLMStudyButton: View {
                         .foregroundColor(.white)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("AI Тесты (NotebookLM)")
+                    Text("AI Конспекты")
                         .font(.system(.headline, design: .rounded, weight: .bold))
                         .foregroundColor(.primary)
                     

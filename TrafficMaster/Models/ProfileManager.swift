@@ -80,4 +80,13 @@ class ProfileManager: ObservableObject {
         let fileURL = getDocumentsDirectory().appendingPathComponent(avatarFileName)
         return try? Data(contentsOf: fileURL)
     }
+
+    func logout() {
+        isLoggedIn = false
+        firstName = ""
+        lastName = ""
+        username = ""
+        subscriptionTier = .free
+        avatarData = nil
+    }
 }
