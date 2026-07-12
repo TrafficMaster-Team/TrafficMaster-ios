@@ -17,7 +17,7 @@ struct ContentView: View {
     @AppStorage("daily_new_cards_limit") private var dailyNewCardsLimit = 34
     @AppStorage("enable_study_notifications") private var enableStudyNotifications = true
 
-    private let profileManager = ProfileManager.shared
+    @StateObject private var profileManager = ProfileManager.shared
 
     var body: some View {
         ZStack {
@@ -57,7 +57,7 @@ struct ContentView: View {
                         // Пытаемся загрузить вопросы
                         loadInitialData()
                     }
-            } else if showLogin {
+            } else if !profileManager.isLoggedIn {
                 LoginView()
                     .transition(.opacity)
             } else {
