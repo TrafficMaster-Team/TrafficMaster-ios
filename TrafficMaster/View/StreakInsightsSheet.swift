@@ -110,17 +110,18 @@ struct StreakInsightsSheet: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(heroTitle)
                         .font(.system(.title2, design: .rounded, weight: .bold))
+                        .foregroundColor(.primary)
                     Text(
                         "Стрик растет, когда в течение дня ты решаешь хотя бы одну карточку. " +
-                        "Даже короткая сессия держит темп."
+                            "Даже короткая сессия держит темп."
                     )
                     .font(.system(.subheadline, design: .rounded, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.primary.opacity(0.8))
                 }
                 Spacer(minLength: 16)
                 ZStack {
                     Circle()
-                        .fill(.orange.opacity(0.14))
+                        .fill(.orange.opacity(0.2))
                         .frame(width: 68, height: 68)
                     Image(systemName: "flame.fill")
                         .font(.title)
@@ -137,7 +138,7 @@ struct StreakInsightsSheet: View {
         .padding(20)
         .background(
             LinearGradient(
-                colors: [Color.orange.opacity(0.22), Color.red.opacity(0.12)],
+                colors: [Color.orange.opacity(0.3), Color.red.opacity(0.2)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -234,7 +235,7 @@ struct StreakInsightsSheet: View {
             HStack(spacing: 8) {
                 Text("Редко")
                     .foregroundColor(.secondary)
-                ForEach(0...5, id: \.self) { level in
+                ForEach(0 ... 5, id: \.self) { level in
                     RoundedRectangle(cornerRadius: 4, style: .continuous)
                         .fill(heatmapColor(for: level))
                         .frame(width: 16, height: 10)
@@ -269,11 +270,11 @@ struct StreakInsightsSheet: View {
         switch streak {
         case 0:
             return "Запусти первый огонь"
-        case 1..<3:
+        case 1 ..< 3:
             return "Стрик уже жив"
-        case 3..<7:
+        case 3 ..< 7:
             return "Неплохой ритм"
-        case 7..<14:
+        case 7 ..< 14:
             return "Неделя без срывов"
         default:
             return "Это уже серьезная серия"
@@ -322,14 +323,15 @@ struct StreakChip: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
                 .font(.system(.caption, design: .rounded, weight: .medium))
-                .foregroundColor(.secondary)
+                .foregroundColor(.primary.opacity(0.8))
             Text(value)
                 .font(.system(.headline, design: .rounded, weight: .bold))
+                .foregroundColor(.primary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(.white.opacity(0.55))
+        .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }
@@ -384,7 +386,7 @@ struct AchievementTile: View {
 
             Text(achievement.title)
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
-                .foregroundColor(.primary)
+                .foregroundColor(achievement.isUnlocked ? .primary : .secondary)
             Text(achievement.subtitle)
                 .font(.system(.caption, design: .rounded, weight: .medium))
                 .foregroundColor(.secondary)
@@ -395,14 +397,14 @@ struct AchievementTile: View {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(
                     achievement.isUnlocked ?
-                    achievement.tint.opacity(0.12) :
-                    Color(UIColor.tertiarySystemFill)
+                        achievement.tint.opacity(0.15) :
+                        Color(UIColor.tertiarySystemFill)
                 )
         )
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(
-                    achievement.isUnlocked ? achievement.tint.opacity(0.3) : .clear,
+                    achievement.isUnlocked ? achievement.tint.opacity(0.5) : .clear,
                     lineWidth: 1
                 )
         )

@@ -139,9 +139,13 @@ struct StatisticsView: View {
                                         .cornerRadius(6)
                                     }
                                     .frame(width: 140, height: 140)
-                                    .scaleEffect(animateCharts ? 1 : 0.5)
-                                    .opacity(animateCharts ? 1 : 0)
-                                    .animation(.spring(response: 0.6, dampingFraction: 0.8), value: animateCharts)
+                                    .mask(
+                                        Circle()
+                                            .trim(from: 0, to: animateCharts ? 1 : 0)
+                                            .stroke(style: StrokeStyle(lineWidth: 100))
+                                            .rotationEffect(.degrees(-90))
+                                    )
+                                    .animation(.easeInOut(duration: 1.0), value: animateCharts)
 
                                     VStack(alignment: .leading, spacing: 12) {
                                         ForEach(collectionData) { data in

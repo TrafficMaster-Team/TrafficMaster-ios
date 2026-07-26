@@ -248,12 +248,13 @@ class QuestionViewModel {
         question.repetitions = result.repetitions
         question.nextReviewDate = result.nextReviewAt ?? Date()
 
-        if grade == .again {
-            let insertIndex = min(sessionQueue.count, Int.random(in: 2 ... 6))
+        if question.sm2State == .learning || question.sm2State == .relearning {
+            let insertIndex = min(sessionQueue.count, Int.random(in: 4 ... 10))
             sessionQueue.insert(question, at: insertIndex)
-            loadNextFromQueue()
-        } else {
-            loadNextFromQueue()
+        }
+        loadNextFromQueue()
+
+        if grade != .again {
             learnedTodayCount += 1
         }
 
@@ -319,9 +320,16 @@ class QuestionViewModel {
             try? DatabaseService.shared.saveQuestion(question)
         }
 
+        // Clean up markdown dollars from the question text and explanation
+        let cleanText = question.text.replacingOccurrences(of: "$$", with: "").replacingOccurrences(of: "$", with: "")
+        let cleanExplanation = question.explanation?.replacingOccurrences(of: "$$", with: "").replacingOccurrences(of: "$", with: "")
+        
+        question.text = cleanText
+        question.explanation = cleanExplanation
+
         if !question.answerOptions.isEmpty {
             shuffledAnswerOptions = question.answerOptions.shuffled()
-            shuffledOptions = shuffledAnswerOptions.map(\.text)
+            shuffledOptions = shuffledAnswerOptions.map { $0.text.replacingOccurrences(of: "$$", with: "").replacingOccurrences(of: "$", with: "") }
         } else {
             shuffledAnswerOptions = question.options.enumerated().map { idx, option in
                 AnswerOption(
@@ -330,7 +338,7 @@ class QuestionViewModel {
                     order: idx
                 )
             }.shuffled()
-            shuffledOptions = shuffledAnswerOptions.map(\.text)
+            shuffledOptions = shuffledAnswerOptions.map { $0.text.replacingOccurrences(of: "$$", with: "").replacingOccurrences(of: "$", with: "") }
         }
         questionShownAt = Date()
         updateCounters()
