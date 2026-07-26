@@ -79,8 +79,10 @@ struct QuestionView: View {
                     Menu {
                         Button(action: {
                             Haptics.impact(.medium)
-                            withAnimation(.spring()) {
-                                viewModel.markAsGuessed()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                withAnimation(.spring()) {
+                                    viewModel.markAsGuessed()
+                                }
                             }
                         }) {
                             Label("Ответил наугад (Плохо)", systemImage: "questionmark.circle")
@@ -88,8 +90,10 @@ struct QuestionView: View {
                         
                         Button(action: {
                             Haptics.impact(.medium)
-                            withAnimation(.spring()) {
-                                viewModel.markAsEasy()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                withAnimation(.spring()) {
+                                    viewModel.markAsEasy()
+                                }
                             }
                         }) {
                             Label("Показывать реже (Отлично)", systemImage: "star")
