@@ -127,6 +127,9 @@ struct QuestionView: View {
                 viewModel.loadQuestions(dailyNewLimit: dailyLimit)
             }
         }
+        .onDisappear {
+            NotificationCenter.default.post(name: NSNotification.Name("RefreshHomeView"), object: nil)
+        }
     }
 
     // MARK: - Subviews

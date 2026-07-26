@@ -53,6 +53,8 @@ struct HomeView: View {
     @State private var showAdriveView = false
     @State private var isLoading = true
 
+    let refreshNotification = NotificationCenter.default.publisher(for: NSNotification.Name("RefreshHomeView"))
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -127,24 +129,29 @@ struct HomeView: View {
                     }
                 }
             }
-        }
-        .navigationDestination(isPresented: $showAdriveView) {
-            AdriveHomeView(viewModel: viewModel)
-        }
-        .sheet(isPresented: $isShowingStreakSheet) {
-            StreakInsightsSheet(streak: currentStreak)
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-                .presentationCornerRadius(32)
-                .presentationBackground(.ultraThinMaterial)
-        }
-        .onAppear {
-            refreshProgress()
-            viewModel.loadQuestions(dailyNewLimit: dailyNewLimit)
-            updateSections()
-        }
-        .onChange(of: viewModel.allQuestions) { _, _ in
-            updateSections()
+            .navigationDestination(isPresented: $showAdriveView) {
+                AdriveHomeView(viewModel: viewModel)
+            }
+            .sheet(isPresented: $isShowingStreakSheet) {
+                StreakInsightsSheet(streak: currentStreak)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+                    .presentationCornerRadius(32)
+                    .presentationBackground(.ultraThinMaterial)
+            }
+            .onAppear {
+                refreshProgress()
+                viewModel.loadQuestions(dailyNewLimit: dailyNewLimit)
+                updateSections()
+            }
+            .onChange(of: viewModel.allQuestions) { _, _ in
+                updateSections()
+            }
+            .onReceive(refreshNotification) { _ in
+                refreshProgress()
+                viewModel.loadQuestions(dailyNewLimit: dailyNewLimit)
+                updateSections()
+            }
         }
     }
 
