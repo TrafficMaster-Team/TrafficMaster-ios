@@ -15,10 +15,10 @@ struct QuestionView: View {
     @State private var aiTutorContext: AITutorQuestionContext?
     @State private var aiTutorMessages: [String: [AITutorChatMessage]] = [:]
     @State private var aiTutorDetent: PresentationDetent = .medium
-    
+
     var questions: [Question] = []
     var dailyLimit: Int = 34
-    
+
     var body: some View {
         ZStack {
             LinearGradient(
@@ -29,8 +29,8 @@ struct QuestionView: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-                .ignoresSafeArea()
-            
+            .ignoresSafeArea()
+
             if viewModel.currentQuestion == nil {
                 completionScreen
             } else {
@@ -39,23 +39,25 @@ struct QuestionView: View {
                     ScrollView {
                         VStack(spacing: 24) {
                             questionAndImageArea
-                            
+
                             // Варианты ответов
                             if viewModel.currentQuestion != nil {
                                 optionsList()
                             }
-                            
+
+                            explanationArea
+
                             // Anki-счетчики (Общий прогресс)
                             ankiCounters
                                 .padding(.top, 8)
-                            
+
                             // Пространство под плавающие кнопки
                             Color.clear.frame(height: 200)
                         }
                         .safeAreaPadding(.top, 20)
                     }
                 }
-                
+
                 // Плавающие кнопки действий
                 if viewModel.userAnswerIndex != nil {
                     actionButtons
@@ -72,9 +74,36 @@ struct QuestionView: View {
             ToolbarItem(placement: .topBarLeading) {
                 leadingToolbarContent
             }
+            ToolbarItem(placement: .topBarTrailing) {
+                if viewModel.userAnswerIndex != nil {
+                    Menu {
+                        Button(action: {
+                            Haptics.impact(.medium)
+                            withAnimation(.spring()) {
+                                viewModel.markAsGuessed()
+                            }
+                        }) {
+                            Label("Ответил наугад (Плохо)", systemImage: "questionmark.circle")
+                        }
+                        
+                        Button(action: {
+                            Haptics.impact(.medium)
+                            withAnimation(.spring()) {
+                                viewModel.markAsEasy()
+                            }
+                        }) {
+                            Label("Показывать реже (Отлично)", systemImage: "star")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundColor(.primary)
+                    }
+                }
+            }
         }
         .alert("Вы действительно хотите выйти?", isPresented: $showingExitAlert) {
-            Button("Отмена", role: .cancel) { }
+            Button("Отмена", role: .cancel) {}
             Button("Выйти", role: .destructive) { dismiss() }
         }
         .sheet(
@@ -92,10 +121,14 @@ struct QuestionView: View {
             }
         )
         .onAppear {
-            viewModel.loadQuestions(dailyNewLimit: dailyLimit)
+            if !questions.isEmpty {
+                viewModel.loadSpecificQuestions(questions)
+            } else {
+                viewModel.loadQuestions(dailyNewLimit: dailyLimit)
+            }
         }
     }
-    
+
     // MARK: - Subviews
 
     private var aiTutorPresentationBackground: AnyShapeStyle {
@@ -103,24 +136,24 @@ struct QuestionView: View {
             ? AnyShapeStyle(Color(uiColor: .systemGroupedBackground))
             : AnyShapeStyle(.ultraThinMaterial)
     }
-    
+
     private var completionScreen: some View {
         VStack(spacing: 20) {
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 80))
                 .foregroundColor(.green)
-            
+
             Text("Отличная работа!")
                 .font(.largeTitle.weight(.bold))
-            
+
             let msg = "На сегодня карточки для этого раздела закончились. Возвращайтесь позже."
-            
+
             Text(msg)
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
-            
+
             VStack(spacing: 12) {
                 Button(action: {
                     Haptics.impact(.medium)
@@ -142,7 +175,7 @@ struct QuestionView: View {
             Haptics.notification(.success)
         }
     }
-    
+
     private var questionAndImageArea: some View {
         VStack(spacing: 16) {
             // Картинка
@@ -158,7 +191,7 @@ struct QuestionView: View {
                     .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 5)
                     .padding(.horizontal, 16)
             }
-            
+
             // Текст вопроса
             Text(viewModel.currentQuestion?.text ?? "Загрузка вопроса...")
                 .font(.system(.title3, design: .rounded, weight: .medium))
@@ -169,7 +202,39 @@ struct QuestionView: View {
         }
         .padding(.top, 16)
     }
-    
+
+    private var explanationArea: some View {
+        Group {
+            if viewModel.showExplanation, let explanation = viewModel.currentQuestion?.explanation, !explanation.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Image(systemName: viewModel.isCorrect == true ? "checkmark.circle.fill" : "info.circle.fill")
+                            .foregroundColor(viewModel.isCorrect == true ? .green : .blue)
+                        Text(viewModel.isCorrect == true ? "Правильно!" : "Обратите внимание")
+                            .font(.system(.headline, design: .rounded, weight: .bold))
+                            .foregroundColor(viewModel.isCorrect == true ? .green : .blue)
+                    }
+                    
+                    Text(explanation)
+                        .font(.system(.body, design: .rounded))
+                        .foregroundColor(.primary)
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(viewModel.isCorrect == true ? Color.green.opacity(0.1) : Color.blue.opacity(0.1))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(viewModel.isCorrect == true ? Color.green.opacity(0.3) : Color.blue.opacity(0.3), lineWidth: 1)
+                )
+                .padding(.horizontal, 16)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+    }
+
     private func optionsList() -> some View {
         VStack(spacing: 12) {
             ForEach(Array(viewModel.shuffledOptions.enumerated()), id: \.offset) { index, option in
@@ -224,13 +289,13 @@ struct QuestionView: View {
         }
         .padding(.horizontal, 16)
     }
-    
+
     private var ankiCounters: some View {
         VStack(spacing: 8) {
             Text("ВАШ ПРОГРЕСС")
                 .font(.system(size: 10, weight: .black, design: .rounded))
                 .foregroundColor(.secondary)
-            
+
             HStack(spacing: 24) {
                 ankiCounterView(count: viewModel.blueCount, title: "Новые", color: .blue)
                 ankiCounterView(count: viewModel.yellowCount, title: "В изучении", color: .red)
@@ -247,7 +312,7 @@ struct QuestionView: View {
         )
         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
     }
-    
+
     private func ankiCounterView(count: Int, title: String, color: Color) -> some View {
         VStack(spacing: 4) {
             Text("\(count)")
@@ -258,7 +323,7 @@ struct QuestionView: View {
                 .foregroundColor(.secondary)
         }
     }
-    
+
     private var actionButtons: some View {
         VStack {
             Spacer()
@@ -272,29 +337,8 @@ struct QuestionView: View {
         }
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }
-    
-    private var guessedButton: some View {
-        Button(action: {
-            Haptics.impact(.medium)
-            withAnimation(.spring()) {
-                viewModel.markAsGuessed()
-            }
-        }, label: {
-            Text("Ответил наугад 🤔")
-                .font(.system(.headline, design: .rounded, weight: .bold))
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                    LinearGradient(colors: [.orange, .pink], startPoint: .topLeading, endPoint: .bottomTrailing)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .shadow(color: .orange.opacity(0.3), radius: 8, x: 0, y: 4)
-        })
-        .buttonStyle(SquishyButtonStyle())
-        .transition(.scale.combined(with: .opacity))
-    }
-    
+
+
     private var continueButton: some View {
         Button(action: {
             Haptics.selection()
@@ -313,7 +357,7 @@ struct QuestionView: View {
         })
         .buttonStyle(SquishyButtonStyle())
     }
-    
+
     private var leadingToolbarContent: some View {
         Button(action: {
             Haptics.selection()
@@ -330,7 +374,7 @@ struct QuestionView: View {
         })
         .buttonStyle(.plain)
     }
-    
+
     private func optionBackground(for index: Int) -> AnyShapeStyle {
         if let userIndex = viewModel.userAnswerIndex {
             if index == viewModel.correctAnswerIndexInShuffled {
@@ -346,19 +390,10 @@ struct QuestionView: View {
 private extension QuestionView {
     @ViewBuilder
     var answerSupportButtons: some View {
-        if viewModel.showGuessedButton || profileManager.hasStudentSubscription {
+        if profileManager.hasStudentSubscription {
             HStack(spacing: 12) {
-                if viewModel.showGuessedButton {
-                    guessedButton
-                }
-
-                if !viewModel.showGuessedButton {
-                    Spacer(minLength: 0)
-                }
-
-                if profileManager.hasStudentSubscription {
-                    aiTutorButton
-                }
+                Spacer(minLength: 0)
+                aiTutorButton
             }
             .transition(.move(edge: .bottom).combined(with: .opacity))
         }
@@ -399,7 +434,8 @@ private extension QuestionView {
         guard let question = viewModel.currentQuestion,
               let userAnswer = viewModel.selectedAnswerText,
               let correctAnswer = viewModel.correctAnswerText,
-              let isCorrect = viewModel.isCorrect else {
+              let isCorrect = viewModel.isCorrect
+        else {
             return nil
         }
 
@@ -426,11 +462,11 @@ private extension QuestionView {
 
 struct MeshGradientBackground: View {
     @State private var animate = false
-    
+
     var body: some View {
         ZStack {
             Color(UIColor.systemBackground)
-            
+
             glowCircle(color: .blue.opacity(0.15), width: 300, xOff: animate ? 100 : -100, yOff: animate ? -150 : 100)
             glowCircle(color: .purple.opacity(0.15), width: 300, xOff: animate ? -100 : 100, yOff: animate ? 150 : -100)
             glowCircle(color: .gray.opacity(0.1), width: 200, xOff: 0, yOff: animate ? -50 : 50)
@@ -441,7 +477,7 @@ struct MeshGradientBackground: View {
             }
         }
     }
-    
+
     private func glowCircle(color: Color, width: CGFloat, xOff: CGFloat, yOff: CGFloat) -> some View {
         Circle()
             .fill(color)
@@ -460,11 +496,12 @@ struct SquishyButtonStyle: ButtonStyle {
 }
 
 // MARK: - Haptics Helper
-struct Haptics {
+
+enum Haptics {
     #if targetEnvironment(simulator)
-    private static let isEnabled = false
+        private static let isEnabled = false
     #else
-    private static let isEnabled = true
+        private static let isEnabled = true
     #endif
 
     static func selection() {
@@ -486,7 +523,7 @@ struct Haptics {
     }
 }
 
-// Extension to bridge UIColor to SwiftUI Color easily
+/// Extension to bridge UIColor to SwiftUI Color easily
 extension UIColor {
     var color: Color {
         Color(self)

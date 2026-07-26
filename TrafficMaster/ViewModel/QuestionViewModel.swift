@@ -19,33 +19,33 @@ class QuestionViewModel {
     var userAnswerIndex: Int?
     var showExplanation = false
     private var questionShownAt: Date?
-    
+
     // Anki / Progress tracking
     var targetNewCards = 0
     var learnedTodayCount = 0
     var cardsToReviewCount = 0
-    
+
     // Session Queue
     private var sessionQueue: [Question] = []
     private var sessionCards: [Question] = [] // Tracks the full batch for UI counters
-    
-    // SM-2 Scheduler (Domain Layer), mirrored from backend CardProgressService.
+
+    /// SM-2 Scheduler (Domain Layer), mirrored from backend CardProgressService.
     private let sm2Scheduler = SM2Scheduler()
-    
+
     // Exam Mode
     private var examQueue: [Question] = []
     private var isExamMode = false
-    
+
     // Stats for UI (Stored properties to trigger SwiftUI updates)
     var blueCount: Int = 0
     var yellowCount: Int = 0
     var greenCount: Int = 0
-    
+
     var dueTodayCount: Int {
         let now = Date()
         return allQuestions.filter { $0.sm2State != .new && $0.nextReviewDate <= now }.count
     }
-    
+
     var introducedTodayCount: Int {
         let calendar = Calendar.current
         return allQuestions.filter { question in
@@ -53,28 +53,29 @@ class QuestionViewModel {
             return calendar.isDateInToday(seenAt)
         }.count
     }
-    
+
     var correctAnswerIndexInShuffled: Int? {
         guard let question = currentQuestion else { return nil }
         if let explicitIndex = shuffledAnswerOptions.firstIndex(where: { $0.isCorrect == true }) {
             return explicitIndex
         }
-        
+
         if let explicitCorrectID = question.answerOptions.first(where: { $0.isCorrect == true })?.id {
             return shuffledAnswerOptions.firstIndex(where: { $0.id == explicitCorrectID })
         }
-        
+
         let correctText = question.options[question.correctAnswerIndex]
         return shuffledOptions.firstIndex(of: correctText)
     }
-    
+
     var showGuessedButton: Bool {
         userAnswerIndex != nil && isCorrect == true
     }
 
     var selectedAnswerText: String? {
         guard let selectedOptionIndex,
-              shuffledOptions.indices.contains(selectedOptionIndex) else {
+              shuffledOptions.indices.contains(selectedOptionIndex)
+        else {
             return nil
         }
         return shuffledOptions[selectedOptionIndex]
@@ -82,12 +83,14 @@ class QuestionViewModel {
 
     var correctAnswerText: String? {
         if let correctIndex = correctAnswerIndexInShuffled,
-           shuffledOptions.indices.contains(correctIndex) {
+           shuffledOptions.indices.contains(correctIndex)
+        {
             return shuffledOptions[correctIndex]
         }
 
         guard let question = currentQuestion,
-              question.options.indices.contains(question.correctAnswerIndex) else {
+              question.options.indices.contains(question.correctAnswerIndex)
+        else {
             return nil
         }
         return question.options[question.correctAnswerIndex]
@@ -100,15 +103,15 @@ class QuestionViewModel {
         yellowCount = sessionCards.filter { $0.seenAt != nil && $0.sm2State != .review }.count
         greenCount = sessionCards.filter { $0.seenAt != nil && $0.sm2State == .review }.count
     }
-    
+
     func loadQuestions(dailyNewLimit: Int = 34, isExamMode: Bool = false) {
         do {
             print("📥 QuestionViewModel.loadQuestions() called")
             let questions = try DatabaseService.shared.fetchAllQuestions()
             print("✅ Successfully loaded \(questions.count) questions from SQLite")
-            self.allQuestions = questions
+            allQuestions = questions
             self.isExamMode = isExamMode
-            self.targetNewCards = dailyNewLimit
+            targetNewCards = dailyNewLimit
 
             if isExamMode {
                 setupExamSession()
@@ -123,12 +126,28 @@ class QuestionViewModel {
             print("❌ Error details: \(error.localizedDescription)")
         }
     }
-    
+
+    func loadSpecificQuestions(_ questions: [Question]) {
+        self.allQuestions = questions
+        self.isExamMode = false
+        self.targetNewCards = 9999
+        setupSpecificSession(questions)
+        updateCounters()
+    }
+
+    private func setupSpecificSession(_ questions: [Question]) {
+        self.sessionCards = questions
+        self.sessionQueue = sessionCards
+        self.sessionQueue.shuffle()
+        self.cardsToReviewCount = sessionCards.filter { $0.sm2State == .review }.count
+        loadNextFromQueue()
+    }
+
     private func setupExamSession() {
         examQueue = allQuestions.shuffled()
         loadNextExamQuestion()
     }
-    
+
     private func loadNextExamQuestion() {
         guard !examQueue.isEmpty else {
             currentQuestion = nil
@@ -138,10 +157,10 @@ class QuestionViewModel {
         currentQuestion = nextQuestion
         prepareShuffledOptions(for: nextQuestion)
     }
-    
+
     private func setupStandardSession() {
         let now = Date()
-        
+
         // Continue-first strategy:
         // 1) Learning continuation (seen at least once, but not graduated)
         // 2) Due review cards
@@ -150,20 +169,20 @@ class QuestionViewModel {
             $0.seenAt != nil && ($0.sm2State == .learning || $0.sm2State == .relearning) && $0.nextReviewDate <= now
         }
         let dueReview = allQuestions.filter { $0.seenAt != nil && $0.sm2State == .review && $0.nextReviewDate <= now }
-        
+
         // Hard daily cap for new cards:
         // if user already introduced N new cards today, do not exceed targetNewCards.
         let remainingNewToday = max(0, targetNewCards - introducedTodayCount)
         let newUnseen = allQuestions.filter { $0.seenAt == nil }.prefix(remainingNewToday)
-        
+
         sessionCards = Array(learningContinuation) + Array(dueReview) + Array(newUnseen)
         sessionQueue = sessionCards
         sessionQueue.shuffle()
-        
+
         cardsToReviewCount = learningContinuation.count + dueReview.count
         loadNextFromQueue()
     }
-    
+
     private func loadNextFromQueue() {
         guard !sessionQueue.isEmpty else {
             currentQuestion = nil
@@ -173,20 +192,21 @@ class QuestionViewModel {
         currentQuestion = next
         prepareShuffledOptions(for: next)
     }
-    
+
     func selectAnswer(index: Int) {
         guard userAnswerIndex == nil else { return }
         userAnswerIndex = index
         selectedOptionIndex = index
-        
+
         if index == correctAnswerIndexInShuffled {
             isCorrect = true
+            showExplanation = true
         } else {
             isCorrect = false
             showExplanation = true
         }
     }
-    
+
     func continueToNext() {
         guard currentQuestion != nil, let isCorrect = isCorrect else { return }
         if isCorrect == true {
@@ -197,7 +217,11 @@ class QuestionViewModel {
     }
 
     func markAsGuessed() {
-        applySM2Rating(grade: .again)
+        applySM2Rating(grade: .hard)
+    }
+
+    func markAsEasy() {
+        applySM2Rating(grade: .easy)
     }
 
     private func applySM2Rating(grade: SM2Scheduler.Grade) {
@@ -225,7 +249,7 @@ class QuestionViewModel {
         question.nextReviewDate = result.nextReviewAt ?? Date()
 
         if grade == .again {
-            let insertIndex = min(sessionQueue.count, Int.random(in: 2...6))
+            let insertIndex = min(sessionQueue.count, Int.random(in: 2 ... 6))
             sessionQueue.insert(question, at: insertIndex)
             loadNextFromQueue()
         } else {
@@ -271,11 +295,11 @@ class QuestionViewModel {
         updateCounters()
         resetSelection()
     }
-    
+
     private func processExamReview(grade: SM2Scheduler.Grade) {
         guard let question = currentQuestion else { return }
         if grade == .again {
-            let reinsertIndex = min(examQueue.count, Int.random(in: 15...40))
+            let reinsertIndex = min(examQueue.count, Int.random(in: 15 ... 40))
             examQueue.insert(question, at: reinsertIndex)
         }
         loadNextExamQuestion()
@@ -288,13 +312,13 @@ class QuestionViewModel {
         isCorrect = nil
         showExplanation = false
     }
-    
+
     private func prepareShuffledOptions(for question: Question) {
         if question.seenAt == nil {
             question.seenAt = Date()
             try? DatabaseService.shared.saveQuestion(question)
         }
-        
+
         if !question.answerOptions.isEmpty {
             shuffledAnswerOptions = question.answerOptions.shuffled()
             shuffledOptions = shuffledAnswerOptions.map(\.text)
@@ -311,10 +335,11 @@ class QuestionViewModel {
         questionShownAt = Date()
         updateCounters()
     }
-    
+
     private func selectedOptionIDForCurrentSelection() -> UUID? {
         guard let index = selectedOptionIndex,
-              shuffledAnswerOptions.indices.contains(index) else {
+              shuffledAnswerOptions.indices.contains(index)
+        else {
             return nil
         }
         return shuffledAnswerOptions[index].id
@@ -330,7 +355,7 @@ class QuestionViewModel {
             }
         }
     }
-    
+
     private func mapGradeToReviewRating(_ grade: SM2Scheduler.Grade) -> ReviewRating {
         switch grade {
         case .again: return .again

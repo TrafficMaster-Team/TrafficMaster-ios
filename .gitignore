@@ -2,3 +2,7 @@ build_output/
 *.xcuserstate
 xcuserdata/
 .DS_Store
+.agents/
+AGENTS.md
+.antigravity.md
+Gemini.md

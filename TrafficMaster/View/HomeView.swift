@@ -8,6 +8,7 @@
 import SwiftUI
 
 // MARK: - Models for the Path
+
 struct LearningSection: Identifiable, Sendable {
     let id: UUID
     let title: String
@@ -48,6 +49,8 @@ struct HomeView: View {
     @State private var currentStreak: Int = 0
     @State private var isShowingStreakSheet = false
     @AppStorage("daily_new_limit") private var dailyNewLimit: Int = 34
+    @AppStorage("enableAdriveTests") private var enableAdriveTests = false
+    @State private var showAdriveView = false
     @State private var isLoading = true
 
     var body: some View {
@@ -75,15 +78,44 @@ struct HomeView: View {
                             .padding(.horizontal, 20)
                             .padding(.bottom, 10)
 
-                            limitPicker
 
-                            DailyStudyButton(questions: viewModel.allQuestions, dailyLimit: dailyNewLimit)
+
+                            if enableAdriveTests {
+                                Button(action: {
+                                    showAdriveView = true
+                                }) {
+                                    HStack {
+                                        ZStack {
+                                            Circle()
+                                                .fill(LinearGradient(colors: [.purple, .indigo], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                                .frame(width: 50, height: 50)
+                                            Image(systemName: "car.fill")
+                                                .font(.title2)
+                                                .foregroundColor(.white)
+                                        }
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("Adrive вопросы (старые)")
+                                                .font(.system(.headline, design: .rounded, weight: .bold))
+                                                .foregroundColor(.primary)
+                                            Text("Вопросы с фотографиями")
+                                                .font(.system(.caption, design: .rounded, weight: .medium))
+                                                .foregroundColor(.purple)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.subheadline.weight(.bold))
+                                            .foregroundColor(.secondary)
+                                            .padding(.trailing, 8)
+                                    }
+                                    .padding(12)
+                                    .background(Color(UIColor.secondarySystemGroupedBackground))
+                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                    .shadow(color: .purple.opacity(0.15), radius: 10, x: 0, y: 5)
+                                }
+                                .buttonStyle(SquishyNodeButtonStyle())
                                 .padding(.horizontal, 20)
                                 .padding(.bottom, 10)
-                                
-                            NotebookLMStudyButton()
-                                .padding(.horizontal, 20)
-                                .padding(.bottom, 20)
+                            }
 
                             LazyVStack(spacing: 0) {
                                 ForEach(dynamicSections) { section in
@@ -95,6 +127,9 @@ struct HomeView: View {
                     }
                 }
             }
+        }
+        .navigationDestination(isPresented: $showAdriveView) {
+            AdriveHomeView(viewModel: viewModel)
         }
         .sheet(isPresented: $isShowingStreakSheet) {
             StreakInsightsSheet(streak: currentStreak)
@@ -113,33 +148,14 @@ struct HomeView: View {
         }
     }
 
-    private var limitPicker: some View {
-        HStack {
-            Text("Новых карточек в день:")
-                .font(.system(.subheadline, design: .rounded, weight: .medium))
-                .foregroundColor(.secondary)
-            Spacer()
-            Picker("Лимит", selection: $dailyNewLimit) {
-                Text("10").tag(10)
-                Text("20").tag(20)
-                Text("30").tag(30)
-                Text("34").tag(34)
-                Text("50").tag(50)
-                Text("80").tag(80)
-                Text("100").tag(100)
-            }
-            .tint(.orange)
-        }
-        .padding(.horizontal, 30)
-        .padding(.bottom, 10)
-    }
+
 
     private func refreshProgress() {
         currentStreak = ProgressTracker.shared.calculateStreak()
     }
 
     private func updateSections() {
-        let questions = viewModel.allQuestions
+        let questions = viewModel.allQuestions.filter { !$0.isAdrive }
         guard !questions.isEmpty else { return }
 
         dynamicSections = HomeView.calculateSectionsStatic(from: questions)
@@ -148,7 +164,7 @@ struct HomeView: View {
     }
 
     @MainActor
-    private static func calculateSectionsStatic(from questions: [Question]) -> [LearningSection] {
+    static func calculateSectionsStatic(from questions: [Question]) -> [LearningSection] {
         let sectionsDict = Dictionary(grouping: questions, by: { $0.sectionTitle ?? "Раздел 1" })
 
         var sections: [LearningSection] = []
@@ -192,6 +208,7 @@ struct HomeView: View {
 }
 
 // MARK: - Section View (Unit Header + Nodes)
+
 struct SectionView: View {
     let section: LearningSection
 
@@ -226,6 +243,7 @@ struct SectionView: View {
 }
 
 // MARK: - Node View (Station)
+
 struct NodeView: View {
     let node: PathNode
     let sectionColor: Color
@@ -235,15 +253,26 @@ struct NodeView: View {
     @State private var floating = false
     @Environment(\.colorScheme) var colorScheme
 
-    var completedTop: Color { colorScheme == .dark ? Color(red: 0.15, green: 0.65, blue: 0.2) : Color.green }
+    var completedTop: Color {
+        colorScheme == .dark ? Color(red: 0.15, green: 0.65, blue: 0.2) : Color.green
+    }
+
     var completedBottom: Color {
         colorScheme == .dark ? Color(red: 0.05, green: 0.45, blue: 0.1) : Color(red: 0.1, green: 0.6, blue: 0.1)
     }
-    var currentTop: Color { colorScheme == .dark ? Color(red: 0.85, green: 0.75, blue: 0.1) : Color.yellow }
-    var currentBottom: Color { colorScheme == .dark ? Color(red: 0.8, green: 0.5, blue: 0.0) : Color.orange }
+
+    var currentTop: Color {
+        colorScheme == .dark ? Color(red: 0.85, green: 0.75, blue: 0.1) : Color.yellow
+    }
+
+    var currentBottom: Color {
+        colorScheme == .dark ? Color(red: 0.8, green: 0.5, blue: 0.0) : Color.orange
+    }
+
     var lockedTop: Color {
         colorScheme == .dark ? Color(red: 0.6, green: 0.2, blue: 0.2) : Color(red: 0.85, green: 0.3, blue: 0.3)
     }
+
     var lockedBottom: Color {
         colorScheme == .dark ? Color(red: 0.4, green: 0.1, blue: 0.1) : Color(red: 0.6, green: 0.1, blue: 0.1)
     }
@@ -387,111 +416,31 @@ struct TopGamificationBar: View {
     }
 }
 
-struct DailyStudyButton: View {
-    let questions: [Question]
-    let dailyLimit: Int
 
-    var body: some View {
-        let questionCount = questions.count
-        let destination = QuestionView(questions: questions, dailyLimit: dailyLimit)
-
-        NavigationLink(destination: destination) {
-            HStack(spacing: 16) {
-                ZStack {
-                    Circle()
-                        .fill(LinearGradient(colors: [.orange, .red], startPoint: .topLeading, endPoint: .bottomTrailing))
-                        .frame(width: 50, height: 50)
-
-                    Image(systemName: "timer")
-                        .font(.title2)
-                        .foregroundColor(.white)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Продолжить обучение")
-                        .font(.system(.headline, design: .rounded, weight: .bold))
-                        .foregroundColor(.primary)
-
-                    if questionCount > 0 {
-                        Text("Сессия до 20 минут, новых: \(dailyLimit)")
-                            .font(.system(.caption, design: .rounded, weight: .medium))
-                            .foregroundColor(.secondary)
-                    } else {
-                        Text("Загрузка вопросов...")
-                            .font(.system(.caption, design: .rounded, weight: .medium))
-                            .foregroundColor(.orange)
-                    }
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.subheadline.weight(.bold))
-                    .foregroundColor(.secondary)
-                    .padding(.trailing, 8)
-            }
-            .padding(12)
-            .background(Color(UIColor.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 5)
-        }
-        .buttonStyle(SquishyNodeButtonStyle())
-        .disabled(questionCount == 0)
-        .opacity(questionCount == 0 ? 0.5 : 1.0)
-    }
-}
-
-struct NotebookLMStudyButton: View {
-    @StateObject private var store = NotebookLMQuizStore.shared
-    @State private var selectedQuiz: NotebookLMQuiz?
-    
-    var body: some View {
-        Button(action: {
-            if let randomQuiz = store.quizzes.randomElement() {
-                selectedQuiz = randomQuiz
-            }
-        }, label: {
-            HStack(spacing: 16) {
-                ZStack {
-                    Circle()
-                        .fill(LinearGradient(colors: [.purple, .indigo], startPoint: .topLeading, endPoint: .bottomTrailing))
-                        .frame(width: 50, height: 50)
-                    
-                    Image(systemName: "brain.head.profile")
-                        .font(.title2)
-                        .foregroundColor(.white)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("AI Конспекты")
-                        .font(.system(.headline, design: .rounded, weight: .bold))
-                        .foregroundColor(.primary)
-                    
-                    if store.quizzes.isEmpty {
-                        Text("Загрузка...")
-                            .font(.system(.caption, design: .rounded, weight: .medium))
-                            .foregroundColor(.purple)
-                    } else {
-                        Text("\(store.quizzes.count) умных опросов готово!")
-                            .font(.system(.caption, design: .rounded, weight: .medium))
-                            .foregroundColor(.secondary)
-                    }
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.subheadline.weight(.bold))
-                    .foregroundColor(.secondary)
-                    .padding(.trailing, 8)
-            }
-            .padding(12)
-            .background(Color(UIColor.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .shadow(color: .purple.opacity(0.15), radius: 10, x: 0, y: 5)
-        })
-        .buttonStyle(SquishyNodeButtonStyle())
-        .disabled(store.quizzes.isEmpty)
-        .navigationDestination(item: $selectedQuiz) { quiz in
-            NotebookLMQuestionView(topic: quiz.topic ?? quiz.title ?? "Тест", questions: quiz.questions)
-        }
-    }
-}
 
 #Preview {
     HomeView()
+}
+
+struct AdriveHomeView: View {
+    var viewModel: QuestionViewModel
+    @State private var dynamicSections: [LearningSection] = []
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(dynamicSections) { section in
+                    SectionView(section: section)
+                }
+            }
+            .padding(.bottom, 100)
+        }
+        .background(Color(UIColor.systemGroupedBackground).ignoresSafeArea())
+        .navigationTitle("Adrive вопросы")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            let adriveQuestions = viewModel.allQuestions.filter { $0.isAdrive }
+            dynamicSections = HomeView.calculateSectionsStatic(from: adriveQuestions)
+        }
+    }
 }
