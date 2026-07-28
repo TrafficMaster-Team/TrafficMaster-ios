@@ -31,18 +31,27 @@ struct PathNode: Identifiable, Sendable {
     let isLocked: Bool
     let isCurrent: Bool
     let isCompleted: Bool
+    let isReviewDue: Bool
     let questions: [Question]
 
-    init(id: UUID = UUID(), chapterName: String, isLocked: Bool, isCurrent: Bool, isCompleted: Bool, questions: [Question]) {
+    init(
+        id: UUID = UUID(),
+        chapterName: String,
+        isLocked: Bool,
+        isCurrent: Bool,
+        isCompleted: Bool,
+        isReviewDue: Bool,
+        questions: [Question]
+    ) {
         self.id = id
         self.chapterName = chapterName
         self.isLocked = isLocked
         self.isCurrent = isCurrent
         self.isCompleted = isCompleted
+        self.isReviewDue = isReviewDue
         self.questions = questions
     }
 }
-
 struct HomeView: View {
     @State private var viewModel = QuestionViewModel()
     @State private var dynamicSections: [LearningSection] = []
@@ -187,21 +196,25 @@ struct HomeView: View {
             var nodes: [PathNode] = []
             for chapterTitle in chaptersDict.keys.sorted() {
                 let chapterQs = chaptersDict[chapterTitle] ?? []
+                let reviewQuestions = chapterQs.filter {
+                    $0.repetitions > 0 && $0.nextReviewDate <= Date()
+                }
+                let isReviewDue = !reviewQuestions.isEmpty
                 let isCompleted = chapterQs.allSatisfy { $0.repetitions > 0 }
-                let isCurrent = !isCompleted && !isCurrentAssigned
-
+                let isCurrent = !isReviewDue && !isCompleted && !isCurrentAssigned
                 if isCurrent {
                     isCurrentAssigned = true
                 }
 
-                let isLocked = !isCompleted && !isCurrent
+                let isLocked = !isReviewDue && !isCompleted && !isCurrent
 
                 nodes.append(PathNode(
                     chapterName: chapterTitle,
                     isLocked: isLocked,
                     isCurrent: isCurrent,
                     isCompleted: isCompleted,
-                    questions: chapterQs
+                    isReviewDue: isReviewDue,
+                    questions: isReviewDue ? reviewQuestions : chapterQs
                 ))
             }
 
@@ -278,6 +291,12 @@ struct NodeView: View {
         colorScheme == .dark ? Color(red: 0.8, green: 0.5, blue: 0.0) : Color.orange
     }
 
+    var reviewTop: Color {
+        colorScheme == .dark ? Color(red: 0.2, green: 0.55, blue: 1.0) : Color.blue
+    }
+    var reviewBottom: Color {
+        colorScheme == .dark ? Color(red: 0.05, green: 0.3, blue: 0.75) : Color.indigo
+    }
     var lockedTop: Color {
         colorScheme == .dark ? Color(red: 0.6, green: 0.2, blue: 0.2) : Color(red: 0.85, green: 0.3, blue: 0.3)
     }
@@ -292,6 +311,8 @@ struct NodeView: View {
         ZStack {
             if node.isLocked {
                 lockedNode
+            } else if node.isReviewDue {
+                reviewNode
             } else if node.isCompleted {
                 completedNode
             } else if node.isCurrent {
@@ -310,6 +331,29 @@ struct NodeView: View {
         .scaleEffect(y: 0.85)
     }
 
+    private var reviewNode: some View {
+        NavigationLink(destination: QuestionView(questions: node.questions)) {
+            ZStack {
+                Circle().fill(reviewBottom).frame(width: 82, height: 82).offset(y: 9)
+                Circle().fill(reviewTop).frame(width: 82, height: 82)
+                    .overlay(
+                        Image(systemName: "arrow.clockwise")
+                            .foregroundColor(.white)
+                            .font(.title.weight(.bold))
+                    )
+                Text("ПОВТОРЕНИЕ")
+                    .font(.system(.caption2, design: .rounded, weight: .bold))
+                    .foregroundStyle(reviewTop)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(.background, in: Capsule())
+                    .offset(y: -60)
+            }
+            .scaleEffect(y: 0.85)
+        }
+        .buttonStyle(SquishyNodeButtonStyle())
+        .accessibilityLabel("Повторение: \(node.chapterName)")
+    }
     private var completedNode: some View {
         NavigationLink(destination: QuestionView(questions: node.questions)) {
             ZStack {

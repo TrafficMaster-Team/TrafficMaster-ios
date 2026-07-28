@@ -174,29 +174,21 @@ struct ProfileView: View {
                 // СЕКЦИЯ Г: Приложение и поддержка
                 Section(header: Text("Поддержка")) {
                     Button(action: {
-                        // Действие для отзыва
-                    }, label: {
-                        HStack {
-                            SettingsIconView(icon: "heart.fill", backgroundColor: .pink)
-                            Text("Оценить приложение")
-                                .foregroundColor(.primary)
-                        }
-                    })
-
-                    Button(action: {
-                        if let url = URL(string: "https://t.me/traffic_master_team") {
+                        if let url = URL(string: "https://trafficmaster.ordinad.xyz/support") {
                             UIApplication.shared.open(url)
                         }
                     }, label: {
                         HStack {
                             SettingsIconView(icon: "envelope.fill", backgroundColor: .teal)
-                            Text("Написать разработчикам")
+                            Text("Центр поддержки")
                                 .foregroundColor(.primary)
                         }
                     })
 
                     Button(action: {
-                        // Открыть Safari/WebView
+                        if let url = URL(string: "https://trafficmaster.ordinad.xyz/privacy") {
+                            UIApplication.shared.open(url)
+                        }
                     }, label: {
                         HStack {
                             SettingsIconView(icon: "hand.raised.fill", backgroundColor: .indigo)

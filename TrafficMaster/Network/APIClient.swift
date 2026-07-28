@@ -22,7 +22,7 @@ final class APIClient {
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
 
-    init(config: APIConfig = .local, session: URLSession = .shared) {
+    init(config: APIConfig = .current, session: URLSession = .shared) {
         self.config = config
         self.session = session
 
@@ -96,6 +96,26 @@ final class APIClient {
         }
 
         return httpResponse
+    }
+
+    func fetchCurrentUser() async throws -> APIUser {
+        let url = config.baseURL.appendingPathComponent("v1/auth/me")
+        return try await send(makeRequest(url: url, method: .get), decodeAs: APIUser.self)
+    }
+
+    func deleteCurrentUser() async throws {
+        let user = try await fetchCurrentUser()
+        let url = config.baseURL.appendingPathComponent("v1/user/\(user.id.uuidString)")
+        let request = makeRequest(url: url, method: .delete)
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIClientError.invalidResponse
+        }
+        guard httpResponse.statusCode == 204 else {
+            let body = String(data: data, encoding: .utf8) ?? "Account deletion failed"
+            throw APIClientError.httpError(statusCode: httpResponse.statusCode, body: body)
+        }
     }
 
     func reviewCard(cardID: UUID, payload: APIReviewCardRequest) async throws -> APIReviewCardResponse {

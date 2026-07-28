@@ -11,7 +11,20 @@ struct APIConfig {
     var baseURL: URL
     var requestTimeout: TimeInterval = 30
 
+    static let production = APIConfig(baseURL: URL(string: "https://api.ordinad.xyz")!)
     static let local = APIConfig(baseURL: URL(string: "http://localhost:8000")!)
+
+    static var current: APIConfig {
+        #if DEBUG
+            if let override = ProcessInfo.processInfo.environment["TRAFFICMASTER_API_BASE_URL"],
+               let url = URL(string: override),
+               let scheme = url.scheme?.lowercased(),
+               ["http", "https"].contains(scheme) {
+                return APIConfig(baseURL: url)
+            }
+        #endif
+        return .production
+    }
 }
 
 struct APIDeck: Codable, Sendable {
@@ -246,6 +259,13 @@ struct APIReviewOption: Codable, Identifiable, Sendable {
     let id: UUID
     let text: String
     let order: Int?
+}
+
+struct APIUser: Codable, Sendable {
+    let id: UUID
+    let email: String
+    let name: String
+    let role: String
 }
 
 struct APISignUpRequest: Codable, Sendable {

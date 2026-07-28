@@ -25,6 +25,9 @@ struct EditProfileView: View {
     @State private var showImagePicker = false
     @State private var avatarData: Data?
     @State private var showingDeleteAlert = false
+    @State private var showingDeletionError = false
+    @State private var deletionErrorMessage = ""
+    @State private var isDeletingAccount = false
 
     var body: some View {
         NavigationStack {
@@ -89,12 +92,27 @@ struct EditProfileView: View {
             .alert("Удаление аккаунта", isPresented: $showingDeleteAlert) {
                 Button("Отмена", role: .cancel) {}
                 Button("Удалить", role: .destructive) {
-                    profileManager.logout()
+                    Task {
+                        await deleteAccount()
+                    }
                 }
             } message: {
-                Text("Это действие необратимо. Все ваши данные будут удалены.")
+                Text("Это действие необратимо. Учётная запись и связанные с ней серверные данные будут удалены.")
+            }
+            .alert("Не удалось удалить аккаунт", isPresented: $showingDeletionError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(deletionErrorMessage)
             }
             .listStyle(.insetGrouped)
+            .disabled(isDeletingAccount)
+            .overlay {
+                if isDeletingAccount {
+                    ProgressView("Удаление аккаунта…")
+                        .padding()
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+                }
+            }
             .navigationTitle("Редактирование")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -120,6 +138,21 @@ struct EditProfileView: View {
             lastName = profileManager.lastName
             username = profileManager.username
             avatarData = profileManager.avatarData
+        }
+    }
+
+    @MainActor
+    private func deleteAccount() async {
+        isDeletingAccount = true
+        defer { isDeletingAccount = false }
+
+        do {
+            try await APIClient.shared.deleteCurrentUser()
+            profileManager.logout()
+            dismiss()
+        } catch {
+            deletionErrorMessage = error.localizedDescription
+            showingDeletionError = true
         }
     }
 

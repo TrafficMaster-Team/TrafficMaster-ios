@@ -143,6 +143,29 @@ struct LoginView: View {
         })
     }
 
+    private func makeAccountName(username: String, email: String) -> String {
+        let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-")
+        let separators = CharacterSet(charactersIn: "._-")
+
+        func sanitize(_ value: String) -> String {
+            value.unicodeScalars
+                .map { allowed.contains($0) ? String($0) : "_" }
+                .joined()
+                .trimmingCharacters(in: separators)
+        }
+
+        let preferred = sanitize(username)
+        if !preferred.isEmpty {
+            let validLengthName = preferred.count < 3 ? "driver_\(preferred)" : preferred
+            return String(validLengthName.prefix(30))
+        }
+
+        let emailPrefix = sanitize(String(email.split(separator: "@", maxSplits: 1).first ?? "driver"))
+        let base = emailPrefix.isEmpty ? "driver" : emailPrefix
+        let suffix = String(UUID().uuidString.prefix(6)).lowercased()
+        return "\(String(base.prefix(23)))_\(suffix)"
+    }
+
     private var isSubmitDisabled: Bool {
         isSubmitting || firstName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
             email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
@@ -158,7 +181,7 @@ struct LoginView: View {
 
         guard !cleanFirstName.isEmpty else { return }
 
-        let displayName = [cleanFirstName, cleanLastName].filter { !$0.isEmpty }.joined(separator: " ")
+        let accountName = makeAccountName(username: cleanUsername, email: cleanEmail)
         isSubmitting = true
         defer { isSubmitting = false }
 
@@ -175,7 +198,7 @@ struct LoginView: View {
         }
 
         do {
-            _ = try await apiClient.signUp(payload: APISignUpRequest(email: cleanEmail, name: displayName, password: password))
+            _ = try await apiClient.signUp(payload: APISignUpRequest(email: cleanEmail, name: accountName, password: password))
             _ = try await apiClient.logIn(payload: APILoginRequest(email: cleanEmail, password: password))
 
             profileManager.firstName = cleanFirstName
