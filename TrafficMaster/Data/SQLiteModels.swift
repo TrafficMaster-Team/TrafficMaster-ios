@@ -42,7 +42,7 @@ struct SyncReviewEvent: Codable, Identifiable, Sendable {
 
 enum DatabaseSchema {
     static let version = 5 // v5: align local card progress with backend SM-2 state
-    
+
     static let createQuestionsTable = """
     CREATE TABLE IF NOT EXISTS questions (
         id TEXT PRIMARY KEY,
@@ -68,7 +68,7 @@ enum DatabaseSchema {
         seen_at REAL
     )
     """
-    
+
     static let createRevlogsTable = """
     CREATE TABLE IF NOT EXISTS revlogs (
         id TEXT PRIMARY KEY,
@@ -81,7 +81,7 @@ enum DatabaseSchema {
         FOREIGN KEY (card_id) REFERENCES questions(id) ON DELETE CASCADE
     )
     """
-    
+
     static let createIndexes = """
     CREATE INDEX IF NOT EXISTS idx_questions_next_review ON questions(next_review_date);
     CREATE INDEX IF NOT EXISTS idx_questions_chapter ON questions(chapter_title);
@@ -89,7 +89,7 @@ enum DatabaseSchema {
     CREATE INDEX IF NOT EXISTS idx_revlogs_card_id ON revlogs(card_id);
     CREATE INDEX IF NOT EXISTS idx_sync_outbox_created_at ON sync_outbox(created_at);
     """
-    
+
     static let createSyncOutboxTable = """
     CREATE TABLE IF NOT EXISTS sync_outbox (
         id TEXT PRIMARY KEY,

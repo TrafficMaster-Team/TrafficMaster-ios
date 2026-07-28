@@ -34,10 +34,10 @@ struct MainTabView: View {
                 .tag(AppNavigationState.Tab.profile)
         }
         .tint(.blue)
-#if os(iOS)
-        .toolbarBackground(.visible, for: .tabBar)
-        .toolbarBackground(.ultraThinMaterial, for: .tabBar)
-#endif
+        #if os(iOS)
+            .toolbarBackground(.visible, for: .tabBar)
+            .toolbarBackground(.ultraThinMaterial, for: .tabBar)
+        #endif
     }
 }
 

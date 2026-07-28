@@ -1,27 +1,39 @@
 @testable import TrafficMaster
+import Foundation
 import XCTest
 
 final class ProfileManagerTests: XCTestCase {
-    var manager: ProfileManager!
-    
+    private var manager: ProfileManager!
+    private var defaults: UserDefaults!
+    private var suiteName: String!
+
     override func setUp() {
         super.setUp()
-        manager = ProfileManager.shared
-        // Reset login state for testing if possible
-        UserDefaults.standard.set(false, forKey: "isLoggedIn")
+        suiteName = "ProfileManagerTests.\(UUID().uuidString)"
+        defaults = UserDefaults(suiteName: suiteName)
+        defaults.removePersistentDomain(forName: suiteName)
+        manager = ProfileManager(defaults: defaults)
     }
-    
+
+    override func tearDown() {
+        manager = nil
+        defaults.removePersistentDomain(forName: suiteName)
+        defaults = nil
+        suiteName = nil
+        super.tearDown()
+    }
+
     func testInitialState() {
         XCTAssertFalse(manager.isLoggedIn)
     }
-    
+
     func testLogin() {
         manager.isLoggedIn = true
-        XCTAssertTrue(UserDefaults.standard.bool(forKey: "isLoggedIn"))
+        XCTAssertTrue(defaults.bool(forKey: "isLoggedIn"))
     }
-    
+
     func testProfileUpdate() {
-        manager.userName = "Test User"
-        XCTAssertEqual(UserDefaults.standard.string(forKey: "userName"), "Test User")
+        manager.username = "test_user"
+        XCTAssertEqual(defaults.string(forKey: "username"), "test_user")
     }
 }

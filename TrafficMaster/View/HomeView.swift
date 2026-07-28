@@ -80,16 +80,20 @@ struct HomeView: View {
                             .padding(.horizontal, 20)
                             .padding(.bottom, 10)
 
-
-
                             if enableAdriveTests {
                                 Button(action: {
                                     showAdriveView = true
-                                }) {
+                                }, label: {
                                     HStack {
                                         ZStack {
                                             Circle()
-                                                .fill(LinearGradient(colors: [.purple, .indigo], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                                .fill(
+                                                    LinearGradient(
+                                                        colors: [.purple, .indigo],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    )
+                                                )
                                                 .frame(width: 50, height: 50)
                                             Image(systemName: "car.fill")
                                                 .font(.title2)
@@ -113,7 +117,7 @@ struct HomeView: View {
                                     .background(Color(UIColor.secondarySystemGroupedBackground))
                                     .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                                     .shadow(color: .purple.opacity(0.15), radius: 10, x: 0, y: 5)
-                                }
+                                })
                                 .buttonStyle(SquishyNodeButtonStyle())
                                 .padding(.horizontal, 20)
                                 .padding(.bottom, 10)
@@ -154,8 +158,6 @@ struct HomeView: View {
             }
         }
     }
-
-
 
     private func refreshProgress() {
         currentStreak = ProgressTracker.shared.calculateStreak()
@@ -362,6 +364,8 @@ struct NodeView: View {
             }
         }
         .buttonStyle(SquishyNodeButtonStyle())
+        .accessibilityIdentifier("dailyStudyButton")
+        .accessibilityLabel("Продолжить обучение")
         .onAppear {
             withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: false)) {
                 bounce.toggle()
@@ -422,8 +426,6 @@ struct TopGamificationBar: View {
         )
     }
 }
-
-
 
 #Preview {
     HomeView()

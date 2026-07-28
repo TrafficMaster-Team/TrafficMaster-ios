@@ -12,17 +12,20 @@ struct AnswerOption: Codable, Identifiable, Equatable, Sendable {
     var text: String
     var isCorrect: Bool?
     var order: Int?
+    var rationale: String?
 
     init(
         id: UUID = UUID(),
         text: String,
         isCorrect: Bool? = nil,
-        order: Int? = nil
+        order: Int? = nil,
+        rationale: String? = nil
     ) {
         self.id = id
         self.text = text
         self.isCorrect = isCorrect
         self.order = order
+        self.rationale = rationale
     }
 }
 
@@ -38,6 +41,8 @@ final class Question: Codable, Identifiable, Equatable, @unchecked Sendable {
     var backendDeckID: UUID?
     var backendCardProgressID: UUID?
     var seenAt: Date?
+    var hint: String?
+    var isAdrive: Bool
 
     // Taxonomy
     var sectionTitle: String?
@@ -67,6 +72,8 @@ final class Question: Codable, Identifiable, Equatable, @unchecked Sendable {
         backendDeckID: UUID? = nil,
         backendCardProgressID: UUID? = nil,
         seenAt: Date? = nil,
+        hint: String? = nil,
+        isAdrive: Bool = false,
         sectionTitle: String? = "Раздел 1",
         chapterTitle: String? = "Глава 1",
         sm2State: SM2CardState = .new,
@@ -89,6 +96,8 @@ final class Question: Codable, Identifiable, Equatable, @unchecked Sendable {
         self.backendDeckID = backendDeckID
         self.backendCardProgressID = backendCardProgressID
         self.seenAt = seenAt
+        self.hint = hint
+        self.isAdrive = isAdrive
         self.sectionTitle = sectionTitle
         self.chapterTitle = chapterTitle
         self.sm2State = sm2State
@@ -109,17 +118,29 @@ final class Question: Codable, Identifiable, Equatable, @unchecked Sendable {
 
     /// Called after model is loaded from store to ensure all values are valid.
     func validateAndFixDefaults() {
-        if repetitions < 0 { repetitions = 0 }
-        if interval < 1 { interval = 1 }
-        if easinessFactor < 1.3 { easinessFactor = 2.5 }
+        if repetitions < 0 {
+            repetitions = 0
+        }
+        if interval < 1 {
+            interval = 1
+        }
+        if easinessFactor < 1.3 {
+            easinessFactor = 2.5
+        }
 
         // Keep deprecated fields sane for old rows and old exported fixtures.
-        if stability < 0 { stability = 0.0 }
-        if difficulty <= 0 { difficulty = 5.0 }
-        if retrievability < 0 || retrievability > 1 { retrievability = 1.0 }
+        if stability < 0 {
+            stability = 0.0
+        }
+        if difficulty <= 0 {
+            difficulty = 5.0
+        }
+        if retrievability < 0 || retrievability > 1 {
+            retrievability = 1.0
+        }
 
         // Ensure multiple-choice payload always exists for backend-compatible flow.
-        if answerOptions.isEmpty && !options.isEmpty {
+        if answerOptions.isEmpty, !options.isEmpty {
             answerOptions = options.enumerated().map { index, text in
                 AnswerOption(
                     text: text,

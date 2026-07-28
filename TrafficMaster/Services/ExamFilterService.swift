@@ -9,37 +9,36 @@ import Foundation
 
 /// Сервис для управления предэкзаменационным режимом
 class ExamFilterService {
-    
     private let database: DatabaseService
     private var config: ExamModeConfiguration
-    
+
     init(database: DatabaseService = .shared, config: ExamModeConfiguration = .normal) {
         self.database = database
         self.config = config
     }
-    
+
     // MARK: - Configuration
-    
+
     func updateConfiguration(_ newConfig: ExamModeConfiguration) {
-        self.config = newConfig
+        config = newConfig
     }
-    
+
     // MARK: - Exam Queue Generation
-    
+
     func generateExamQueue() throws -> [Question] {
         guard config.isEnabled else {
             throw ExamFilterError.modeNotEnabled
         }
-        
+
         let allQuestions = try database.fetchAllQuestions()
-        
+
         if config.filterByWeakTopics {
             return filterWeakTopics(from: allQuestions)
         } else {
             return allQuestions.shuffled()
         }
     }
-    
+
     private func filterWeakTopics(from questions: [Question]) -> [Question] {
         return questions.filter { question in
             let isLowRetrievability = question.retrievability < 0.7
@@ -47,32 +46,32 @@ class ExamFilterService {
             return isLowRetrievability || hasDifficulty
         }.shuffled()
     }
-    
+
     // MARK: - Review Processing
-    
+
     func processReview(
         question: Question,
         isCorrect: Bool,
         currentQueue: inout [Question]
     ) {
         if !isCorrect {
-            let reinsertIndex = min(currentQueue.count, Int.random(in: 10...30))
+            let reinsertIndex = min(currentQueue.count, Int.random(in: 10 ... 30))
             currentQueue.insert(question, at: reinsertIndex)
         }
     }
-    
+
     // MARK: - Statistics
-    
+
     func getExamReadinessStats() throws -> ExamReadinessStats {
         let allQuestions = try database.fetchAllQuestions()
-        
+
         let totalCards = allQuestions.count
         let retainedCards = allQuestions.filter { $0.retrievability >= 0.9 }.count
         let learningCards = allQuestions.filter { $0.retrievability >= 0.5 && $0.retrievability < 0.9 }.count
         let weakCards = allQuestions.filter { $0.retrievability < 0.5 }.count
-        
+
         let avgRetrievability = allQuestions.isEmpty ? 0 : allQuestions.map { $0.retrievability }.reduce(0, +) / Double(allQuestions.count)
-        
+
         return ExamReadinessStats(
             totalCards: totalCards,
             retainedCards: retainedCards,
@@ -97,12 +96,12 @@ struct ExamReadinessStats {
     let predictedSuccessRate: Double
     let daysUntilExam: Int?
     let dailyCardLimit: Int
-    
+
     var retentionPercentage: Double {
         guard totalCards > 0 else { return 0 }
         return Double(retainedCards) / Double(totalCards) * 100
     }
-    
+
     var readinessMessage: String {
         if predictedSuccessRate >= 0.95 {
             return "🎯 Отличная готовность! Шанс сдачи ~\(Int(predictedSuccessRate * 100))%"
@@ -127,7 +126,7 @@ enum ExamFilterError: LocalizedError {
     case modeNotEnabled
     case noCardsAvailable
     case invalidConfiguration
-    
+
     var errorDescription: String? {
         switch self {
         case .modeNotEnabled: return "Предэкзаменационный режим не включён"

@@ -7,22 +7,38 @@
 
 import SwiftUI
 #if canImport(UIKit)
-import UIKit
+    import UIKit
 #endif
 
+struct AnswerOptionDTO: Codable {
+    let text: String
+    let isCorrect: Bool
+    let rationale: String?
+}
+
 struct QuestionImportDTO: Codable {
-    let hierarchy: String
+    let hierarchy: String?
     let question: String
     let image: String?
-    let options: [String]
-    let correctIndex: Int
-    let correctText: String
+    // Legacy fields (Adrive)
+    let options: [String]?
+    let correctIndex: Int?
+    let correctText: String?
     let explanation: String?
-    
+    // New fields (AI generated)
+    let answerOptions: [AnswerOptionDTO]?
+    let hint: String?
+    let isAdrive: Bool?
+    let difficulty: Int?
+    let section: String?
+    let subSection: String?
+
     enum CodingKeys: String, CodingKey {
-        case hierarchy, question, image, options, explanation
+        case hierarchy, question, image, options, explanation, hint, difficulty, section, answerOptions
         case correctIndex = "correct_index"
         case correctText = "correct_text"
+        case isAdrive = "is_adrive"
+        case subSection = "sub_section"
     }
 }
 
@@ -30,8 +46,8 @@ struct QuestionImportDTO: Codable {
 // The product name is a proper noun and must remain unchanged.
 // swiftlint:disable:next inclusive_language
 struct TrafficMasterApp: App {
-    // Current DB Version
-    static let dbVersion = 11 // v11: Normalize chapters/applications to official RB traffic rules titles
+    /// Current DB Version
+    static let dbVersion = 13 // v13: AI generated questions and SM-2 migration (fixed JSON sub_section)
 
     private static let chapterTitles: [Int: String] = [
         1: "Глава 1. Общие положения.",
@@ -61,18 +77,24 @@ struct TrafficMasterApp: App {
         25: "Глава 25. Буксировка механических транспортных средств.",
         26: "Глава 26. Основные положения о допуске транспортных средств к участию " +
             "в дорожном движении, их техническое состояние, оборудование.",
-        27: "Глава 27. Обязанности должностных и иных лиц по обеспечению безопасности дорожного движения.",
+        27: "Глава 27. Обязанности должностных и иных лиц по обеспечению безопасности дорожного движения."
     ]
-    
+
     private static let appendixTitles: [Int: String] = [
         1: "Приложение 1. Дорожные светофоры.",
         2: "Приложение 2. Дорожные знаки.",
         3: "Приложение 3. Дорожная разметка.",
         4: "Приложение 4. Перечень неисправностей транспортных средств и условий, при которых запрещается их участие в дорожном движении.",
-        5: "Приложение 5. Опознавательные знаки транспортных средств.",
+        5: "Приложение 5. Опознавательные знаки транспортных средств."
     ]
 
     @StateObject private var navigationState = AppNavigationState()
+
+    init() {
+        if ProcessInfo.processInfo.arguments.contains("-resetData") {
+            ProfileManager.shared.logout()
+        }
+    }
 
     var body: some Scene {
         WindowGroup("TrafficMaster") {
@@ -89,19 +111,19 @@ struct TrafficMasterApp: App {
             TrafficMasterCommands(navigationState: navigationState)
         }
 
-#if os(macOS)
-        Settings {
-            AppSettingsView()
-        }
-#endif
+        #if os(macOS)
+            Settings {
+                AppSettingsView()
+            }
+        #endif
     }
-    
+
     private func cleanOptionText(_ option: String) -> String {
         let pattern = #"^\s*\d+[\.\)\-\s/]+\s*"#
         let cleaned = option.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
         return cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
     }
-    
+
     private func extractLeadingNumber(from text: String) -> Int? {
         let digits = text.unicodeScalars
             .drop(while: { !CharacterSet.decimalDigits.contains($0) })
@@ -109,18 +131,18 @@ struct TrafficMasterApp: App {
         guard !digits.isEmpty, let value = Int(String(String.UnicodeScalarView(digits))) else { return nil }
         return value
     }
-    
+
     private func normalizedRuleSectionAndChapter(from parts: [String]) -> (section: String, chapter: String) {
         let defaultSection = "Главы Правил дорожного движения Республики Беларусь"
         let defaultChapter = parts.count >= 4 ? parts[3] : "Глава"
-        
+
         guard parts.count >= 4 else {
             return (defaultSection, defaultChapter)
         }
-        
+
         let rawChapter = parts[3]
         let rawPart = parts.count >= 5 ? parts[4] : nil
-        
+
         if rawChapter.contains("Глава"), let number = extractLeadingNumber(from: rawChapter) {
             let base = Self.chapterTitles[number] ?? "Глава \(number)."
             if let rawPart, rawPart.contains("Часть") {
@@ -128,7 +150,7 @@ struct TrafficMasterApp: App {
             }
             return (defaultSection, base)
         }
-        
+
         if rawChapter.contains("Приложение"), let number = extractLeadingNumber(from: rawChapter) {
             let section = "Приложения к Правилам дорожного движения"
             let base = Self.appendixTitles[number] ?? "Приложение \(number)."
@@ -137,20 +159,20 @@ struct TrafficMasterApp: App {
             }
             return (section, base)
         }
-        
+
         return (defaultSection, defaultChapter)
     }
-    
+
     // The import is intentionally linear to keep every migration step auditable.
     // swiftlint:disable:next function_body_length
     private func importDataIfNeeded() async {
         let savedDBVersion = UserDefaults.standard.integer(forKey: "db_version")
-        guard savedDBVersion < TrafficMasterApp.dbVersion else { 
+        guard savedDBVersion < TrafficMasterApp.dbVersion else {
             // Already up-to-date, but ping the UI just in case it missed the initial load
             DispatchQueue.main.async {
                 NotificationCenter.default.post(name: Notification.Name("DatabaseImportCompleted"), object: nil)
             }
-            return 
+            return
         }
 
         print("🚀 Starting SQLite background data import...")
@@ -159,7 +181,7 @@ struct TrafficMasterApp: App {
         do {
             // 1. Fetch existing questions for matching
             let existingQuestions = try db.fetchAllQuestions()
-            
+
             // Create a lookup dictionary
             var existingMap: [String: Question] = [:]
             for question in existingQuestions {
@@ -185,22 +207,40 @@ struct TrafficMasterApp: App {
             // 3. Update or Insert questions
             try db.executeTransaction {
                 for importQ in imported {
-                    let parts = importQ.hierarchy.split(separator: "➔").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    let parts = (importQ.hierarchy ?? "").split(separator: "➔").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                     let normalized = normalizedRuleSectionAndChapter(from: parts)
-                    let section = normalized.section
-                    let chapter = normalized.chapter
+                    let section = importQ.section ?? normalized.section
+                    let chapter = importQ.subSection ?? normalized.chapter
 
                     let cleanedText = importQ.question.replacingOccurrences(of: "\n", with: " ")
                     let key = "\(cleanedText)|\(section)|\(chapter)"
-                    
-                    let cleanedOptions = importQ.options.map { cleanOptionText($0.replacingOccurrences(of: "\n", with: " ")) }
-                    let answerOptions = cleanedOptions.enumerated().map { idx, text in
-                        AnswerOption(
-                            text: text,
-                            isCorrect: idx == importQ.correctIndex,
-                            order: idx
-                        )
+
+                    var finalAnswerOptions: [AnswerOption] = []
+                    var cleanedOptions: [String] = []
+
+                    if let newFormatOptions = importQ.answerOptions {
+                        finalAnswerOptions = newFormatOptions.enumerated().map { idx, opt in
+                            AnswerOption(
+                                text: opt.text.replacingOccurrences(of: "\n", with: " "),
+                                isCorrect: opt.isCorrect,
+                                order: idx,
+                                rationale: opt.rationale?.replacingOccurrences(of: "\n", with: " ")
+                            )
+                        }
+                        cleanedOptions = newFormatOptions.map { $0.text.replacingOccurrences(of: "\n", with: " ") }
+                    } else if let legacyOptions = importQ.options {
+                        cleanedOptions = legacyOptions.map { cleanOptionText($0.replacingOccurrences(of: "\n", with: " ")) }
+                        finalAnswerOptions = cleanedOptions.enumerated().map { idx, text in
+                            AnswerOption(
+                                text: text,
+                                isCorrect: idx == importQ.correctIndex,
+                                order: idx
+                            )
+                        }
                     }
+
+                    let isAdrive = importQ.isAdrive ?? true
+                    let hint = importQ.hint?.replacingOccurrences(of: "\n", with: " ")
 
                     var imageName: String?
                     if let img = importQ.image {
@@ -212,23 +252,27 @@ struct TrafficMasterApp: App {
                     if let existing = existingMap[key] {
                         // Update static content
                         existing.options = cleanedOptions
-                        existing.answerOptions = answerOptions
-                        existing.correctAnswerIndex = importQ.correctIndex
+                        existing.answerOptions = finalAnswerOptions
+                        existing.correctAnswerIndex = importQ.correctIndex ?? 0
                         existing.explanation = importQ.explanation?.replacingOccurrences(of: "\n", with: " ")
                         existing.imageName = imageName
                         existing.sectionTitle = section
                         existing.chapterTitle = chapter
-                        
+                        existing.hint = hint
+                        existing.isAdrive = isAdrive
+
                         try db.saveQuestion(existing)
                     } else {
                         // Insert new
                         let newQuestion = Question(
                             text: cleanedText,
                             options: cleanedOptions,
-                            answerOptions: answerOptions,
-                            correctAnswerIndex: importQ.correctIndex,
+                            answerOptions: finalAnswerOptions,
+                            correctAnswerIndex: importQ.correctIndex ?? 0,
                             explanation: importQ.explanation?.replacingOccurrences(of: "\n", with: " "),
                             imageName: imageName,
+                            hint: hint,
+                            isAdrive: isAdrive,
                             sectionTitle: section,
                             chapterTitle: chapter
                         )
@@ -239,14 +283,14 @@ struct TrafficMasterApp: App {
 
             UserDefaults.standard.set(TrafficMasterApp.dbVersion, forKey: "db_version")
             print("🎉 Successfully finished SQLite data import.")
-            
+
             // Notify views that the import is complete so they can reload
             DispatchQueue.main.async {
                 NotificationCenter.default.post(name: Notification.Name("DatabaseImportCompleted"), object: nil)
             }
         } catch {
             print("❌ SQLite Import error: \(error.localizedDescription)")
-            
+
             DispatchQueue.main.async {
                 NotificationCenter.default.post(name: Notification.Name("DatabaseImportCompleted"), object: nil)
             }

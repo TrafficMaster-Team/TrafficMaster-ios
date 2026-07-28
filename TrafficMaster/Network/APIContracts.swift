@@ -191,7 +191,7 @@ struct APIReviewQueueResponse: Decodable, Sendable {
         }
 
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.items = try container.decode([APIReviewQueueItem].self, forKey: .items)
+        items = try container.decode([APIReviewQueueItem].self, forKey: .items)
     }
 
     private enum CodingKeys: String, CodingKey {

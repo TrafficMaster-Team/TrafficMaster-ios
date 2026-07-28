@@ -7,6 +7,13 @@
 	objects = {
 
 /* Begin PBXContainerItemProxy section */
+		F51C09A23018B6FC000929D6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F5A57B452F45F2D4002ADB59 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F5A57B4C2F45F2D4002ADB59;
+			remoteInfo = TrafficMaster;
+		};
 		F52B05CA2F7D80FE00F0E036 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F5A57B452F45F2D4002ADB59 /* Project object */;
@@ -17,12 +24,18 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		F51C099E3018B6FC000929D6 /* TrafficMasterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrafficMasterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F52B05C42F7D80FE00F0E036 /* TrafficMasterUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrafficMasterUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F52B05DE2F7D894000F0E036 /* TrafficMaster.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = TrafficMaster.xctestplan; sourceTree = "<group>"; };
 		F5A57B4D2F45F2D4002ADB59 /* TrafficMaster.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TrafficMaster.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		F51C099F3018B6FC000929D6 /* TrafficMasterTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TrafficMasterTests;
+			sourceTree = "<group>";
+		};
 		F52B05C52F7D80FE00F0E036 /* TrafficMasterUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = TrafficMasterUITests;
@@ -36,6 +49,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		F51C099B3018B6FC000929D6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F52B05C12F7D80FE00F0E036 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -59,6 +79,7 @@
 				F52B05DE2F7D894000F0E036 /* TrafficMaster.xctestplan */,
 				F5A57B4F2F45F2D4002ADB59 /* TrafficMaster */,
 				F52B05C52F7D80FE00F0E036 /* TrafficMasterUITests */,
+				F51C099F3018B6FC000929D6 /* TrafficMasterTests */,
 				F5A57B4E2F45F2D4002ADB59 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -68,6 +89,7 @@
 			children = (
 				F5A57B4D2F45F2D4002ADB59 /* TrafficMaster.app */,
 				F52B05C42F7D80FE00F0E036 /* TrafficMasterUITests.xctest */,
+				F51C099E3018B6FC000929D6 /* TrafficMasterTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -75,6 +97,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		F51C099D3018B6FC000929D6 /* TrafficMasterTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F51C09A63018B6FC000929D6 /* Build configuration list for PBXNativeTarget "TrafficMasterTests" */;
+			buildPhases = (
+				F51C099A3018B6FC000929D6 /* Sources */,
+				F51C099B3018B6FC000929D6 /* Frameworks */,
+				F51C099C3018B6FC000929D6 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F51C09A33018B6FC000929D6 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				F51C099F3018B6FC000929D6 /* TrafficMasterTests */,
+			);
+			name = TrafficMasterTests;
+			packageProductDependencies = (
+			);
+			productName = TrafficMasterTests;
+			productReference = F51C099E3018B6FC000929D6 /* TrafficMasterTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		F52B05C32F7D80FE00F0E036 /* TrafficMasterUITests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F52B05CE2F7D80FE00F0E036 /* Build configuration list for PBXNativeTarget "TrafficMasterUITests" */;
@@ -123,9 +168,13 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2640;
+				LastSwiftUpdateCheck = 2700;
 				LastUpgradeCheck = 2660;
 				TargetAttributes = {
+					F51C099D3018B6FC000929D6 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = F5A57B4C2F45F2D4002ADB59;
+					};
 					F52B05C32F7D80FE00F0E036 = {
 						CreatedOnToolsVersion = 26.4;
 						TestTargetID = F5A57B4C2F45F2D4002ADB59;
@@ -151,11 +200,19 @@
 			targets = (
 				F5A57B4C2F45F2D4002ADB59 /* TrafficMaster */,
 				F52B05C32F7D80FE00F0E036 /* TrafficMasterUITests */,
+				F51C099D3018B6FC000929D6 /* TrafficMasterTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		F51C099C3018B6FC000929D6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F52B05C22F7D80FE00F0E036 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -173,6 +230,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		F51C099A3018B6FC000929D6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F52B05C02F7D80FE00F0E036 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -190,6 +254,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		F51C09A33018B6FC000929D6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F5A57B4C2F45F2D4002ADB59 /* TrafficMaster */;
+			targetProxy = F51C09A23018B6FC000929D6 /* PBXContainerItemProxy */;
+		};
 		F52B05CB2F7D80FE00F0E036 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = F5A57B4C2F45F2D4002ADB59 /* TrafficMaster */;
@@ -198,6 +267,50 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		F51C09A43018B6FC000929D6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Y85TSUMM4F;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.OrDinaD.TrafficMasterTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TrafficMaster.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TrafficMaster";
+			};
+			name = Debug;
+		};
+		F51C09A53018B6FC000929D6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Y85TSUMM4F;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.OrDinaD.TrafficMasterTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TrafficMaster.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TrafficMaster";
+			};
+			name = Release;
+		};
 		F52B05CC2F7D80FE00F0E036 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -215,6 +328,7 @@
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -239,6 +353,7 @@
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -401,6 +516,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -439,6 +555,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -448,6 +565,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		F51C09A63018B6FC000929D6 /* Build configuration list for PBXNativeTarget "TrafficMasterTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F51C09A43018B6FC000929D6 /* Debug */,
+				F51C09A53018B6FC000929D6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		F52B05CE2F7D80FE00F0E036 /* Build configuration list for PBXNativeTarget "TrafficMasterUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

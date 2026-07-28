@@ -46,7 +46,7 @@ struct BackendSM2Configuration: Codable, Equatable, Sendable {
         var newInterval: Double
 
         static let `default` = Advanced(
-            maxInterval: 36_500,
+            maxInterval: 36500,
             easeFactor: 2.5,
             easyFactor: 1.3,
             intervalModifier: 1.0,

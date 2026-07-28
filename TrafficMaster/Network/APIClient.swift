@@ -8,7 +8,7 @@ enum APIClientError: LocalizedError {
         switch self {
         case .invalidResponse:
             return "Invalid server response"
-        case .httpError(let statusCode, let body):
+        case let .httpError(statusCode, body):
             return "HTTP \(statusCode): \(body)"
         }
     }
@@ -44,7 +44,7 @@ final class APIClient {
         let path = "v1/decks/\(deckID.uuidString)/cards"
         let url = try makeURL(path: path, queryItems: [
             URLQueryItem(name: "limit", value: String(limit)),
-            URLQueryItem(name: "offset", value: String(offset)),
+            URLQueryItem(name: "offset", value: String(offset))
         ])
         return try await send(makeRequest(url: url, method: .get), decodeAs: [APICard].self)
     }
@@ -90,7 +90,7 @@ final class APIClient {
             throw APIClientError.invalidResponse
         }
 
-        guard (200...299).contains(httpResponse.statusCode) else {
+        guard (200 ... 299).contains(httpResponse.statusCode) else {
             let body = String(data: data, encoding: .utf8) ?? "Login failed"
             throw APIClientError.httpError(statusCode: httpResponse.statusCode, body: body)
         }
@@ -136,7 +136,7 @@ final class APIClient {
             throw APIClientError.invalidResponse
         }
 
-        guard (200...299).contains(httpResponse.statusCode) else {
+        guard (200 ... 299).contains(httpResponse.statusCode) else {
             let body = String(data: data, encoding: .utf8) ?? "<empty>"
             throw APIClientError.httpError(statusCode: httpResponse.statusCode, body: body)
         }

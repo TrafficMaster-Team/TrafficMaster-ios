@@ -129,7 +129,7 @@ struct AITutorChatView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .bottom, spacing: 10) {
                 TextField("Спросить про правило", text: $inputText, axis: .vertical)
-                    .lineLimit(1...4)
+                    .lineLimit(1 ... 4)
                     .textFieldStyle(.plain)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)

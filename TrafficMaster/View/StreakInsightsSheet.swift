@@ -86,7 +86,7 @@ struct StreakInsightsSheet: View {
                 icon: "figure.run",
                 tint: .pink,
                 isUnlocked: activeDays >= 10
-            ),
+            )
         ]
     }
 

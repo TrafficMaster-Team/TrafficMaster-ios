@@ -28,7 +28,7 @@ enum SubscriptionTier: String {
 
 class ProfileManager: ObservableObject {
     static let shared = ProfileManager()
-    
+
     @AppStorage("isLoggedIn") var isLoggedIn: Bool = false
     @AppStorage("firstName") var firstName: String = ""
     @AppStorage("lastName") var lastName: String = ""
@@ -49,24 +49,33 @@ class ProfileManager: ObservableObject {
             saveAvatar(data: avatarData)
         }
     }
-    
-    init() {
-        self.avatarData = loadAvatar()
+
+    init(defaults: UserDefaults = .standard) {
+        _isLoggedIn = AppStorage(wrappedValue: false, "isLoggedIn", store: defaults)
+        _firstName = AppStorage(wrappedValue: "", "firstName", store: defaults)
+        _lastName = AppStorage(wrappedValue: "", "lastName", store: defaults)
+        _username = AppStorage(wrappedValue: "", "username", store: defaults)
+        _subscriptionTierRawValue = AppStorage(
+            wrappedValue: SubscriptionTier.free.rawValue,
+            "subscriptionTier",
+            store: defaults
+        )
+        avatarData = loadAvatar()
     }
-    
+
     var fullName: String {
         let name = [firstName, lastName].filter { !$0.isEmpty }.joined(separator: " ")
         return name.isEmpty ? "Студент" : name
     }
-    
+
     // MARK: - Avatar Storage
-    
+
     private let avatarFileName = "profile_avatar.png"
-    
+
     private func getDocumentsDirectory() -> URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
     }
-    
+
     private func saveAvatar(data: Data?) {
         let fileURL = getDocumentsDirectory().appendingPathComponent(avatarFileName)
         if let data = data {
@@ -75,7 +84,7 @@ class ProfileManager: ObservableObject {
             try? FileManager.default.removeItem(at: fileURL)
         }
     }
-    
+
     private func loadAvatar() -> Data? {
         let fileURL = getDocumentsDirectory().appendingPathComponent(avatarFileName)
         return try? Data(contentsOf: fileURL)

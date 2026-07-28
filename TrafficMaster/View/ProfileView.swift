@@ -9,13 +9,14 @@ import SwiftUI
 
 struct ProfileView: View {
     @StateObject private var profileManager = ProfileManager.shared
-    
+
     @State private var dailyCardsLimit: Int = 20
     @State private var reminderEnabled: Bool = true
     @State private var reminderTime: Date = Calendar.current.date(from: DateComponents(hour: 20, minute: 0)) ?? Date()
     @State private var showResetAlert = false
     @State private var showEditProfile = false
-    
+    @AppStorage("enableAdriveTests") private var enableAdriveTests = false
+
     var body: some View {
         NavigationStack {
             List {
@@ -37,7 +38,7 @@ struct ProfileView: View {
                                     .frame(width: 60, height: 60)
                                     .foregroundStyle(.gray, Color(UIColor.tertiarySystemFill))
                             }
-                            
+
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(profileManager.fullName)
                                     .font(.headline)
@@ -59,8 +60,10 @@ struct ProfileView: View {
                         }
                         .padding(.vertical, 4)
                     })
+                    .accessibilityIdentifier("editProfileButton")
+                    .accessibilityLabel("Редактировать профиль")
                 }
-                
+
                 // СЕКЦИЯ Б: Монетизация (TrafficMaster Ученик)
                 Section {
                     VStack(alignment: .leading, spacing: 16) {
@@ -94,7 +97,7 @@ struct ProfileView: View {
 
                             Text(
                                 "Справедливая цена: баланс между экономией времени на подготовку, " +
-                                "снижением риска не сдать экзамен и стоимостью конкурентов."
+                                    "снижением риска не сдать экзамен и стоимостью конкурентов."
                             )
                             .font(.footnote)
                             .foregroundStyle(.secondary)
@@ -117,21 +120,27 @@ struct ProfileView: View {
                 } footer: {
                     Text("Базовая работа с карточками интервального повторения остается бесплатной.")
                 }
-                
+
                 // СЕКЦИЯ В: Настройки обучения
                 Section(header: Text("Настройки обучения")) {
                     // Лимит новых карточек
                     HStack {
                         SettingsIconView(icon: "greetingcard.fill", backgroundColor: .orange)
-                        Stepper("Новых карточек в день: \(dailyCardsLimit)", value: $dailyCardsLimit, in: 5...50, step: 5)
+                        Stepper("Новых карточек в день: \(dailyCardsLimit)", value: $dailyCardsLimit, in: 5 ... 50, step: 5)
                     }
-                    
+
+                    // Тумблер Adrive
+                    HStack {
+                        SettingsIconView(icon: "car.fill", backgroundColor: .purple)
+                        Toggle("Включить Adrive тесты", isOn: $enableAdriveTests)
+                    }
+
                     // Ежедневное напоминание (Toggle)
                     HStack {
                         SettingsIconView(icon: "bell.badge.fill", backgroundColor: .red)
                         Toggle("Ежедневное напоминание", isOn: $reminderEnabled)
                     }
-                    
+
                     // Время напоминания (показывается только если включено)
                     if reminderEnabled {
                         HStack {
@@ -140,7 +149,7 @@ struct ProfileView: View {
                             DatePicker("Время", selection: $reminderTime, displayedComponents: .hourAndMinute)
                         }
                     }
-                    
+
                     // Сброс прогресса
                     Button(action: {
                         showResetAlert = true
@@ -152,7 +161,7 @@ struct ProfileView: View {
                         }
                     })
                     .alert("Сброс прогресса", isPresented: $showResetAlert) {
-                        Button("Отмена", role: .cancel) { }
+                        Button("Отмена", role: .cancel) {}
                         Button("Сбросить", role: .destructive) {
                             // Логика удаления данных SwiftData
                         }
@@ -161,7 +170,7 @@ struct ProfileView: View {
                         Text(msg)
                     }
                 }
-                
+
                 // СЕКЦИЯ Г: Приложение и поддержка
                 Section(header: Text("Поддержка")) {
                     Button(action: {
@@ -173,7 +182,7 @@ struct ProfileView: View {
                                 .foregroundColor(.primary)
                         }
                     })
-                    
+
                     Button(action: {
                         if let url = URL(string: "https://t.me/traffic_master_team") {
                             UIApplication.shared.open(url)
@@ -185,7 +194,7 @@ struct ProfileView: View {
                                 .foregroundColor(.primary)
                         }
                     })
-                    
+
                     Button(action: {
                         // Открыть Safari/WebView
                     }, label: {
@@ -196,7 +205,7 @@ struct ProfileView: View {
                         }
                     })
                 }
-                
+
                 // Версия приложения (Footer)
                 Section {
                     HStack {
@@ -219,6 +228,7 @@ struct ProfileView: View {
 }
 
 // MARK: - Вспомогательный UI подписки
+
 struct SubscriptionStatusPill: View {
     let isActive: Bool
 
@@ -253,10 +263,11 @@ struct SubscriptionBenefitRow: View {
 }
 
 // MARK: - Вспомогательный UI для иконок настроек
+
 struct SettingsIconView: View {
     let icon: String
     let backgroundColor: Color
-    
+
     var body: some View {
         Image(systemName: icon)
             .font(.system(size: 14, weight: .semibold))

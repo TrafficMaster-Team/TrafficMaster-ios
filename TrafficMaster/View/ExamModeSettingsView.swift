@@ -14,18 +14,18 @@ struct ExamModeSettingsView: View {
     @State private var dailyLimit: Int = 400
     @State private var filterByWeakTopics: Bool = false
     @State private var readinessStats: ExamReadinessStats?
-    
+
     @Environment(\.dismiss) private var dismiss
-    
+
     private let storage = ExamModeStorage()
     private let filterService = ExamFilterService()
-    
+
     var body: some View {
         NavigationStack {
             Form {
                 Section {
                     Toggle("Включить предэкзаменационный режим", isOn: $isEnabled)
-                    
+
                     if isEnabled {
                         DatePicker(
                             "Дата экзамена",
@@ -35,11 +35,11 @@ struct ExamModeSettingsView: View {
                             ),
                             displayedComponents: .date
                         )
-                        
-                        Stepper("Карточек в день: \(dailyLimit)", value: $dailyLimit, in: 100...1000, step: 50)
-                        
+
+                        Stepper("Карточек в день: \(dailyLimit)", value: $dailyLimit, in: 100 ... 1000, step: 50)
+
                         Toggle("Только слабые темы", isOn: $filterByWeakTopics)
-                        
+
                         if let days = daysUntilExam {
                             HStack {
                                 Image(systemName: "calendar")
@@ -54,17 +54,17 @@ struct ExamModeSettingsView: View {
                     if isEnabled {
                         Text(
                             "В этом режиме SM-2 приостанавливается. " +
-                            "Все билеты будут показываться повторно для закрепления краткосрочной памяти."
+                                "Все билеты будут показываться повторно для закрепления краткосрочной памяти."
                         )
                     }
                 }
-                
+
                 if isEnabled, let stats = readinessStats {
                     Section("Ваша готовность") {
                         readinessView(stats: stats)
                     }
                 }
-                
+
                 Section {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
@@ -72,7 +72,7 @@ struct ExamModeSettingsView: View {
                             Text("Как это работает")
                                 .fontWeight(.semibold)
                         }
-                        
+
                         Text("• Показывает ВСЕ билеты (или только слабые темы)")
                         Text("• SM-2 НЕ обновляет интервалы (глобальный график не ломается)")
                         Text("• При ошибке билет возвращается в очередь через 15-40 позиций")
@@ -81,7 +81,7 @@ struct ExamModeSettingsView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 }
-                
+
                 Section {
                     Button(action: applyPresetTwoWeeks) {
                         HStack {
@@ -89,7 +89,7 @@ struct ExamModeSettingsView: View {
                             Text("Пресет: 2 недели до экзамена")
                         }
                     }
-                    
+
                     Button(action: applyPresetThreeDays) {
                         HStack {
                             Image(systemName: "calendar.badge.exclamationmark")
@@ -108,7 +108,7 @@ struct ExamModeSettingsView: View {
                         dismiss()
                     }
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Сохранить") {
                         saveConfiguration()
@@ -123,15 +123,15 @@ struct ExamModeSettingsView: View {
             loadStats()
         }
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func readinessView(stats: ExamReadinessStats) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(stats.readinessMessage)
                 .font(.headline)
                 .foregroundColor(stats.predictedSuccessRate > 0.85 ? .green : .orange)
-            
+
             HStack {
                 VStack(alignment: .leading) {
                     Text("Шанс сдачи")
@@ -151,18 +151,18 @@ struct ExamModeSettingsView: View {
                         .fontWeight(.bold)
                 }
             }
-            
+
             ProgressView(value: stats.predictedSuccessRate)
                 .tint(stats.predictedSuccessRate > 0.85 ? .green : .orange)
         }
         .padding(.vertical, 8)
     }
-    
+
     private var daysUntilExam: Int? {
         guard let examDate = examDate else { return nil }
         return Calendar.current.dateComponents([.day], from: Date(), to: examDate).day ?? 0
     }
-    
+
     private func loadConfiguration() {
         let config = storage.loadConfiguration()
         isEnabled = config.isEnabled
@@ -170,11 +170,11 @@ struct ExamModeSettingsView: View {
         dailyLimit = config.dailyCardLimit
         filterByWeakTopics = config.filterByWeakTopics
     }
-    
+
     private func loadStats() {
         readinessStats = try? filterService.getExamReadinessStats()
     }
-    
+
     private func saveConfiguration() {
         let config = ExamModeConfiguration(
             isEnabled: isEnabled,
@@ -186,14 +186,14 @@ struct ExamModeSettingsView: View {
         )
         storage.saveConfiguration(config)
     }
-    
+
     private func applyPresetTwoWeeks() {
         isEnabled = true
         examDate = Date().addingTimeInterval(14 * 24 * 60 * 60)
         dailyLimit = 400
         filterByWeakTopics = false
     }
-    
+
     private func applyPresetThreeDays() {
         isEnabled = true
         examDate = Date().addingTimeInterval(3 * 24 * 60 * 60)

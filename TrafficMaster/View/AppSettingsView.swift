@@ -6,7 +6,7 @@ struct AppSettingsView: View {
 
     var body: some View {
         Form {
-            Stepper(value: $dailyNewCardsLimit, in: 10...100, step: 2) {
+            Stepper(value: $dailyNewCardsLimit, in: 10 ... 100, step: 2) {
                 Text("Новых карточек в день: \(dailyNewCardsLimit)")
             }
 

@@ -11,7 +11,9 @@ struct DailyStudyActivity: Identifiable, Hashable {
     let date: Date
     let cards: Int
 
-    var id: Date { date }
+    var id: Date {
+        date
+    }
 }
 
 class ProgressTracker {
@@ -29,7 +31,7 @@ class ProgressTracker {
         defaults.dictionary(forKey: historyKey) as? [String: Int] ?? [:]
     }
 
-    // Вызывается каждый раз, когда карточка успешно пройдена
+    /// Вызывается каждый раз, когда карточка успешно пройдена
     func logCardStudied() {
         var history = getHistory()
         let today = dateFormatter.string(from: Date())
@@ -37,7 +39,7 @@ class ProgressTracker {
         defaults.set(history, forKey: historyKey)
     }
 
-    // Рассчитывает текущий стрик в днях
+    /// Рассчитывает текущий стрик в днях
     func calculateStreak() -> Int {
         let history = getHistory()
         var streak = 0
@@ -95,13 +97,13 @@ class ProgressTracker {
         return bestStreak
     }
 
-    // Возвращает массив уровней активности (0-5) для Heatmap за 30 дней
+    /// Возвращает массив уровней активности (0-5) для Heatmap за 30 дней
     func getLast30Days() -> [Int] {
         let history = getHistory()
         let calendar = Calendar.current
         var result: [Int] = []
 
-        for index in (0..<30).reversed() {
+        for index in (0 ..< 30).reversed() {
             let date = calendar.date(byAdding: .day, value: -index, to: Date()) ?? Date()
             let dateStr = dateFormatter.string(from: date)
             let count = history[dateStr] ?? 0
@@ -130,7 +132,7 @@ class ProgressTracker {
         let history = getHistory()
         let calendar = Calendar.current
 
-        return (0..<days).reversed().map { index in
+        return (0 ..< days).reversed().map { index in
             let date = calendar.date(byAdding: .day, value: -index, to: Date()) ?? Date()
             let key = dateFormatter.string(from: date)
             return DailyStudyActivity(date: date, cards: history[key] ?? 0)
@@ -145,7 +147,7 @@ class ProgressTracker {
         getHistory().values.filter { $0 > 0 }.count
     }
 
-    // Рассчитывает сэкономленное время (предполагаем 2 минуты экономии на каждую карточку)
+    /// Рассчитывает сэкономленное время (предполагаем 2 минуты экономии на каждую карточку)
     func calculateSavedTimeHours() -> Int {
         let totalCards = totalStudiedCards()
         return (totalCards * 2) / 60

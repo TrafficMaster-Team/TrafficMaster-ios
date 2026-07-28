@@ -17,7 +17,7 @@ struct LoginView: View {
         name: "Демо Пользователь",
         username: "demo_driver"
     )
-    
+
     @State private var firstName: String = ""
     @State private var lastName: String = ""
     @State private var username: String = ""
@@ -28,26 +28,26 @@ struct LoginView: View {
     @State private var isSubmitting = false
     @State private var errorMessage: String?
     @State private var showErrorAlert = false
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
                 MeshGradientBackground()
                     .ignoresSafeArea()
-                
+
                 ScrollView {
                     VStack(spacing: 30) {
                         // Header
                         VStack(spacing: 8) {
                             Text("Добро пожаловать!")
                                 .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                            
+
                             Text("Создайте свой профиль водителя")
                                 .font(.system(.headline, design: .rounded, weight: .medium))
                                 .foregroundColor(.secondary)
                         }
                         .padding(.top, 40)
-                        
+
                         // Avatar Picker
                         Button(action: {
                             showImagePicker = true
@@ -63,7 +63,7 @@ struct LoginView: View {
                                     Circle()
                                         .fill(Color(UIColor.secondarySystemFill))
                                         .frame(width: 120, height: 120)
-                                    
+
                                     Image(systemName: "camera.fill")
                                         .font(.system(size: 40))
                                         .foregroundColor(.secondary)
@@ -78,7 +78,7 @@ struct LoginView: View {
                         .sheet(isPresented: $showImagePicker) {
                             ImagePicker(selectedImageData: $avatarData)
                         }
-                        
+
                         // Form Fields
                         VStack(spacing: 16) {
                             CustomTextField(icon: "person.fill", placeholder: "Имя", text: $firstName)
@@ -106,9 +106,9 @@ struct LoginView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .padding(.horizontal, 20)
-                        
+
                         Spacer()
-                        
+
                         // Action Button
                         Button(action: {
                             Task {
@@ -145,8 +145,8 @@ struct LoginView: View {
 
     private var isSubmitDisabled: Bool {
         isSubmitting || firstName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-        email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-        password.count < 8
+            email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+            password.count < 8
     }
 
     @MainActor
@@ -162,7 +162,7 @@ struct LoginView: View {
         isSubmitting = true
         defer { isSubmitting = false }
 
-        if cleanEmail == demoCredentials.email && password == demoCredentials.password {
+        if cleanEmail == demoCredentials.email, password == demoCredentials.password {
             profileManager.firstName = "Демо"
             profileManager.lastName = "Пользователь"
             profileManager.username = demoCredentials.username
@@ -193,7 +193,7 @@ struct LoginView: View {
     }
 }
 
-// Кастомное текстовое поле
+/// Кастомное текстовое поле
 struct CustomTextField: View {
     let icon: String
     let placeholder: String
@@ -201,13 +201,13 @@ struct CustomTextField: View {
     var keyboardType: UIKeyboardType = .default
     var textInputAutocapitalization: TextInputAutocapitalization = .sentences
     var autocorrectionDisabled: Bool = false
-    
+
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .foregroundColor(.secondary)
                 .frame(width: 24)
-            
+
             TextField(placeholder, text: $text)
                 .font(.system(.body, design: .rounded))
                 .keyboardType(keyboardType)

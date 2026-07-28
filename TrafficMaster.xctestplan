@@ -9,6 +9,8 @@
     }
   ],
   "defaultOptions" : {
+    "addressSanitizerEnabled" : true,
+    "undefinedBehaviorSanitizerEnabled" : true,
     "performanceAntipatternCheckerEnabled" : true,
     "targetForVariableExpansion" : {
       "containerPath" : "container:TrafficMaster.xcodeproj",
@@ -17,7 +19,21 @@
     }
   },
   "testTargets" : [
-
+    {
+      "parallelizable" : false,
+      "target" : {
+        "containerPath" : "container:TrafficMaster.xcodeproj",
+        "identifier" : "F52B05C32F7D80FE00F0E036",
+        "name" : "TrafficMasterUITests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:TrafficMaster.xcodeproj",
+        "identifier" : "F51C099D3018B6FC000929D6",
+        "name" : "TrafficMasterTests"
+      }
+    }
   ],
   "version" : 1
 }

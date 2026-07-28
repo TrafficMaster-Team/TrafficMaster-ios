@@ -74,16 +74,20 @@ final class OpenRouterClient {
             throw OpenRouterClientError.invalidResponse
         }
 
-        guard 200..<300 ~= httpResponse.statusCode else {
+        guard 200 ..< 300 ~= httpResponse.statusCode else {
             throw OpenRouterClientError.serverStatus(httpResponse.statusCode, "")
         }
 
         var didHitTokenLimit = false
 
         for try await line in bytes.lines {
-            if Task.isCancelled { throw CancellationError() }
+            if Task.isCancelled {
+                throw CancellationError()
+            }
             guard let payload = ssePayload(from: line) else { continue }
-            if payload == "[DONE]" { break }
+            if payload == "[DONE]" {
+                break
+            }
 
             let data = Data(payload.utf8)
             let chunk = try decoder.decode(OpenRouterStreamChunk.self, from: data)
@@ -209,14 +213,15 @@ final class OpenRouterClient {
     private func imageDataURL(named imageName: String?) -> String? {
         guard let imageName,
               let image = UIImage(named: imageName),
-              let imageData = scaledJPEGData(from: image) else {
+              let imageData = scaledJPEGData(from: image)
+        else {
             return nil
         }
         return "data:image/jpeg;base64,\(imageData.base64EncodedString())"
     }
 
     private func scaledJPEGData(from image: UIImage) -> Data? {
-        let maxDimension: CGFloat = 1_200
+        let maxDimension: CGFloat = 1200
         let longestSide = max(image.size.width, image.size.height)
         guard longestSide > maxDimension else {
             return image.jpegData(compressionQuality: 0.82)

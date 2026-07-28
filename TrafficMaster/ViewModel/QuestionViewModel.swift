@@ -9,6 +9,7 @@ import Foundation
 import SwiftUI
 
 @Observable
+// swiftlint:disable:next type_body_length
 class QuestionViewModel {
     var allQuestions: [Question] = []
     var currentQuestion: Question?
@@ -83,8 +84,7 @@ class QuestionViewModel {
 
     var correctAnswerText: String? {
         if let correctIndex = correctAnswerIndexInShuffled,
-           shuffledOptions.indices.contains(correctIndex)
-        {
+           shuffledOptions.indices.contains(correctIndex) {
             return shuffledOptions[correctIndex]
         }
 
@@ -329,7 +329,11 @@ class QuestionViewModel {
 
         if !question.answerOptions.isEmpty {
             shuffledAnswerOptions = question.answerOptions.shuffled()
-            shuffledOptions = shuffledAnswerOptions.map { $0.text.replacingOccurrences(of: "$$", with: "").replacingOccurrences(of: "$", with: "") }
+            shuffledOptions = shuffledAnswerOptions.map {
+                $0.text
+                    .replacingOccurrences(of: "$$", with: "")
+                    .replacingOccurrences(of: "$", with: "")
+            }
         } else {
             shuffledAnswerOptions = question.options.enumerated().map { idx, option in
                 AnswerOption(
@@ -338,7 +342,11 @@ class QuestionViewModel {
                     order: idx
                 )
             }.shuffled()
-            shuffledOptions = shuffledAnswerOptions.map { $0.text.replacingOccurrences(of: "$$", with: "").replacingOccurrences(of: "$", with: "") }
+            shuffledOptions = shuffledAnswerOptions.map {
+                $0.text
+                    .replacingOccurrences(of: "$$", with: "")
+                    .replacingOccurrences(of: "$", with: "")
+            }
         }
         questionShownAt = Date()
         updateCounters()

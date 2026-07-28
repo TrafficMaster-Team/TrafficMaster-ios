@@ -9,16 +9,23 @@ import PhotosUI
 import SwiftUI
 
 struct EditProfileView: View {
+    private enum Field: Hashable {
+        case firstName
+        case lastName
+        case username
+    }
+
     @Environment(\.dismiss) private var dismiss
     @StateObject private var profileManager = ProfileManager.shared
-    
+    @FocusState private var focusedField: Field?
+
     @State private var firstName: String = ""
     @State private var lastName: String = ""
     @State private var username: String = ""
     @State private var showImagePicker = false
     @State private var avatarData: Data?
     @State private var showingDeleteAlert = false
-    
+
     var body: some View {
         NavigationStack {
             List {
@@ -39,7 +46,7 @@ struct EditProfileView: View {
                                     Circle()
                                         .fill(Color(UIColor.secondarySystemFill))
                                         .frame(width: 100, height: 100)
-                                    
+
                                     Image(systemName: "camera.fill")
                                         .font(.system(size: 30))
                                         .foregroundColor(.secondary)
@@ -57,14 +64,17 @@ struct EditProfileView: View {
                     }
                     .listRowBackground(Color.clear)
                 }
-                
+
                 Section(header: Text("Личные данные")) {
                     TextField("Имя", text: $firstName)
+                        .focused($focusedField, equals: .firstName)
                     TextField("Фамилия", text: $lastName)
+                        .focused($focusedField, equals: .lastName)
                     TextField("Имя пользователя (ник)", text: $username)
+                        .focused($focusedField, equals: .username)
                         .autocapitalization(.none)
                 }
-                
+
                 Section {
                     Button(role: .destructive) {
                         showingDeleteAlert = true
@@ -77,7 +87,7 @@ struct EditProfileView: View {
                 }
             }
             .alert("Удаление аккаунта", isPresented: $showingDeleteAlert) {
-                Button("Отмена", role: .cancel) { }
+                Button("Отмена", role: .cancel) {}
                 Button("Удалить", role: .destructive) {
                     profileManager.logout()
                 }
@@ -95,13 +105,11 @@ struct EditProfileView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Сохранить") {
-                        profileManager.firstName = firstName
-                        profileManager.lastName = lastName
-                        profileManager.username = username
-                        if let newAvatar = avatarData {
-                            profileManager.avatarData = newAvatar
+                        focusedField = nil
+                        Task { @MainActor in
+                            await Task.yield()
+                            saveProfile()
                         }
-                        dismiss()
                     }
                     .fontWeight(.bold)
                 }
@@ -109,9 +117,19 @@ struct EditProfileView: View {
         }
         .onAppear {
             firstName = profileManager.firstName
-            lastName = lastName
+            lastName = profileManager.lastName
             username = profileManager.username
             avatarData = profileManager.avatarData
         }
+    }
+
+    private func saveProfile() {
+        profileManager.firstName = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
+        profileManager.lastName = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
+        profileManager.username = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let newAvatar = avatarData {
+            profileManager.avatarData = newAvatar
+        }
+        dismiss()
     }
 }

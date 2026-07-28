@@ -46,6 +46,16 @@
                ReferencedContainer = "container:TrafficMaster.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "F51C099D3018B6FC000929D6"
+               BuildableName = "TrafficMasterTests.xctest"
+               ReferencedContainer = "container:TrafficMaster.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

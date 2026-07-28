@@ -7,6 +7,9 @@
 
 import SwiftUI
 
+// The study screen keeps its tightly coupled private rendering helpers in one file.
+// swiftlint:disable file_length
+// swiftlint:disable:next type_body_length
 struct QuestionView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var profileManager = ProfileManager.shared
@@ -24,7 +27,7 @@ struct QuestionView: View {
             LinearGradient(
                 colors: [
                     Color(uiColor: .systemBackground),
-                    Color(uiColor: .secondarySystemGroupedBackground),
+                    Color(uiColor: .secondarySystemGroupedBackground)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -84,9 +87,9 @@ struct QuestionView: View {
                                     viewModel.markAsGuessed()
                                 }
                             }
-                        }) {
+                        }, label: {
                             Label("Ответил наугад (Плохо)", systemImage: "questionmark.circle")
-                        }
+                        })
                         
                         Button(action: {
                             Haptics.impact(.medium)
@@ -95,9 +98,9 @@ struct QuestionView: View {
                                     viewModel.markAsEasy()
                                 }
                             }
-                        }) {
+                        }, label: {
                             Label("Показывать реже (Отлично)", systemImage: "star")
-                        }
+                        })
                     } label: {
                         Image(systemName: "ellipsis.circle")
                             .font(.system(size: 22, weight: .semibold))
@@ -345,7 +348,6 @@ struct QuestionView: View {
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
-
     private var continueButton: some View {
         Button(action: {
             Haptics.selection()
@@ -380,6 +382,8 @@ struct QuestionView: View {
             }
         })
         .buttonStyle(.plain)
+        .accessibilityIdentifier("studyBackButton")
+        .accessibilityLabel("Назад")
     }
 
     private func optionBackground(for index: Int) -> AnyShapeStyle {

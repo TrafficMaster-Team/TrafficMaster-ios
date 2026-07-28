@@ -49,7 +49,7 @@ struct ContentView: View {
                 ProgressView("Загрузка данных...")
                     .onAppear {
                         guard !hasLoadedQuestions else { return }
-                        
+
                         // Проверяем статус входа
                         isLoggedIn = profileManager.isLoggedIn
                         showLogin = !isLoggedIn
@@ -94,27 +94,27 @@ struct ContentView: View {
             }
         }
     }
-    
+
     private func loadInitialData() {
         Task { @MainActor in
             // Сначала проверяем, есть ли уже данные
             viewModel.loadQuestions(dailyNewLimit: dailyNewCardsLimit)
-            
+
             if !viewModel.allQuestions.isEmpty {
                 hasLoadedQuestions = true
                 return
             }
-            
+
             // Если данных нет, ждем до 10 секунд (импорт в фоне)
             var waited: TimeInterval = 0
             let checkInterval: TimeInterval = 0.5
-            
+
             while waited < 10.0 && viewModel.allQuestions.isEmpty {
                 try? await Task.sleep(for: .seconds(checkInterval))
                 waited += checkInterval
                 viewModel.loadQuestions(dailyNewLimit: dailyNewCardsLimit)
             }
-            
+
             // Если после ожидания всё ещё пусто — ошибка
             if viewModel.allQuestions.isEmpty {
                 errorMessage = "База данных пуста или импорт завис. Перезапустите приложение."
