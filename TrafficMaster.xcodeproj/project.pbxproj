@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		F58AD3C0307CC95F00E561EE /* TrafficMasterClip.app in Embed App Clips */ = {isa = PBXBuildFile; fileRef = F58AD3B4307CC95E00E561EE /* TrafficMasterClip.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		F51C09A23018B6FC000929D6 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,14 +25,46 @@
 			remoteGlobalIDString = F5A57B4C2F45F2D4002ADB59;
 			remoteInfo = TrafficMaster;
 		};
+		F58AD3BE307CC95F00E561EE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F5A57B452F45F2D4002ADB59 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F58AD3B3307CC95E00E561EE;
+			remoteInfo = TrafficMasterClip;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		F58AD3C1307CC95F00E561EE /* Embed App Clips */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/AppClips";
+			dstSubfolderSpec = 16;
+			files = (
+				F58AD3C0307CC95F00E561EE /* TrafficMasterClip.app in Embed App Clips */,
+			);
+			name = "Embed App Clips";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		F51C099E3018B6FC000929D6 /* TrafficMasterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrafficMasterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F52B05C42F7D80FE00F0E036 /* TrafficMasterUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrafficMasterUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F52B05DE2F7D894000F0E036 /* TrafficMaster.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = TrafficMaster.xctestplan; sourceTree = "<group>"; };
+		F58AD3B4307CC95E00E561EE /* TrafficMasterClip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TrafficMasterClip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F5A57B4D2F45F2D4002ADB59 /* TrafficMaster.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TrafficMaster.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		F58AD3C4307CC95F00E561EE /* Exceptions for "TrafficMasterClip" folder in "TrafficMasterClip" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F58AD3B3307CC95E00E561EE /* TrafficMasterClip */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		F51C099F3018B6FC000929D6 /* TrafficMasterTests */ = {
@@ -39,6 +75,14 @@
 		F52B05C52F7D80FE00F0E036 /* TrafficMasterUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = TrafficMasterUITests;
+			sourceTree = "<group>";
+		};
+		F58AD3B5307CC95E00E561EE /* TrafficMasterClip */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F58AD3C4307CC95F00E561EE /* Exceptions for "TrafficMasterClip" folder in "TrafficMasterClip" target */,
+			);
+			path = TrafficMasterClip;
 			sourceTree = "<group>";
 		};
 		F5A57B4F2F45F2D4002ADB59 /* TrafficMaster */ = {
@@ -63,6 +107,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F58AD3B1307CC95E00E561EE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F5A57B4A2F45F2D4002ADB59 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -80,6 +131,7 @@
 				F5A57B4F2F45F2D4002ADB59 /* TrafficMaster */,
 				F52B05C52F7D80FE00F0E036 /* TrafficMasterUITests */,
 				F51C099F3018B6FC000929D6 /* TrafficMasterTests */,
+				F58AD3B5307CC95E00E561EE /* TrafficMasterClip */,
 				F5A57B4E2F45F2D4002ADB59 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -90,6 +142,7 @@
 				F5A57B4D2F45F2D4002ADB59 /* TrafficMaster.app */,
 				F52B05C42F7D80FE00F0E036 /* TrafficMasterUITests.xctest */,
 				F51C099E3018B6FC000929D6 /* TrafficMasterTests.xctest */,
+				F58AD3B4307CC95E00E561EE /* TrafficMasterClip.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -141,6 +194,28 @@
 			productReference = F52B05C42F7D80FE00F0E036 /* TrafficMasterUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		F58AD3B3307CC95E00E561EE /* TrafficMasterClip */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F58AD3C5307CC95F00E561EE /* Build configuration list for PBXNativeTarget "TrafficMasterClip" */;
+			buildPhases = (
+				F58AD3B0307CC95E00E561EE /* Sources */,
+				F58AD3B1307CC95E00E561EE /* Frameworks */,
+				F58AD3B2307CC95E00E561EE /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F58AD3B5307CC95E00E561EE /* TrafficMasterClip */,
+			);
+			name = TrafficMasterClip;
+			packageProductDependencies = (
+			);
+			productName = TrafficMasterClip;
+			productReference = F58AD3B4307CC95E00E561EE /* TrafficMasterClip.app */;
+			productType = "com.apple.product-type.application.on-demand-install-capable";
+		};
 		F5A57B4C2F45F2D4002ADB59 /* TrafficMaster */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F5A57B5A2F45F2D5002ADB59 /* Build configuration list for PBXNativeTarget "TrafficMaster" */;
@@ -148,10 +223,12 @@
 				F5A57B492F45F2D4002ADB59 /* Sources */,
 				F5A57B4A2F45F2D4002ADB59 /* Frameworks */,
 				F5A57B4B2F45F2D4002ADB59 /* Resources */,
+				F58AD3C1307CC95F00E561EE /* Embed App Clips */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				F58AD3BF307CC95F00E561EE /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				F5A57B4F2F45F2D4002ADB59 /* TrafficMaster */,
@@ -179,6 +256,9 @@
 						CreatedOnToolsVersion = 26.4;
 						TestTargetID = F5A57B4C2F45F2D4002ADB59;
 					};
+					F58AD3B3307CC95E00E561EE = {
+						CreatedOnToolsVersion = 27.0;
+					};
 					F5A57B4C2F45F2D4002ADB59 = {
 						CreatedOnToolsVersion = 26.2;
 					};
@@ -201,6 +281,7 @@
 				F5A57B4C2F45F2D4002ADB59 /* TrafficMaster */,
 				F52B05C32F7D80FE00F0E036 /* TrafficMasterUITests */,
 				F51C099D3018B6FC000929D6 /* TrafficMasterTests */,
+				F58AD3B3307CC95E00E561EE /* TrafficMasterClip */,
 			);
 		};
 /* End PBXProject section */
@@ -214,6 +295,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		F52B05C22F7D80FE00F0E036 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F58AD3B2307CC95E00E561EE /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -244,6 +332,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F58AD3B0307CC95E00E561EE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F5A57B492F45F2D4002ADB59 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -263,6 +358,11 @@
 			isa = PBXTargetDependency;
 			target = F5A57B4C2F45F2D4002ADB59 /* TrafficMaster */;
 			targetProxy = F52B05CA2F7D80FE00F0E036 /* PBXContainerItemProxy */;
+		};
+		F58AD3BF307CC95F00E561EE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F58AD3B3307CC95E00E561EE /* TrafficMasterClip */;
+			targetProxy = F58AD3BE307CC95F00E561EE /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -358,6 +458,78 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = TrafficMaster;
+			};
+			name = Release;
+		};
+		F58AD3C2307CC95F00E561EE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = TrafficMasterClip/TrafficMasterClip.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Y85TSUMM4F;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TrafficMasterClip/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TrafficMaster;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = OrDinaD.TrafficMaster.Clip;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F58AD3C3307CC95F00E561EE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = TrafficMasterClip/TrafficMasterClip.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Y85TSUMM4F;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TrafficMasterClip/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TrafficMaster;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = OrDinaD.TrafficMaster.Clip;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -579,6 +751,15 @@
 			buildConfigurations = (
 				F52B05CC2F7D80FE00F0E036 /* Debug */,
 				F52B05CD2F7D80FE00F0E036 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F58AD3C5307CC95F00E561EE /* Build configuration list for PBXNativeTarget "TrafficMasterClip" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F58AD3C2307CC95F00E561EE /* Debug */,
+				F58AD3C3307CC95F00E561EE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
