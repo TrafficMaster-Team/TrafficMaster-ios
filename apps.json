@@ -19,11 +19,11 @@
             "versions": [
                 {
                     "version": "1.0.1",
-                    "buildVersion": "9",
-                    "date": "2026-07-12T18:52:36+0000",
-                    "size": 324278664,
-                    "downloadURL": "https://github.com/TrafficMaster-Team/TrafficMaster-ios/releases/download/v1.0.1-build.9-00d2952/TrafficMaster.ipa",
-                    "localizedDescription": "Automated commit push. CI Build 9."
+                    "buildVersion": "12",
+                    "date": "2026-10-12T08:26:00+0000",
+                    "size": 324856611,
+                    "downloadURL": "https://github.com/TrafficMaster-Team/TrafficMaster-ios/releases/download/v1.0.1-build.12-9ce904c/TrafficMaster.ipa",
+                    "localizedDescription": "Automated commit push. CI Build 12."
                 }
             ]
         }
