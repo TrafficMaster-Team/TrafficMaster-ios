@@ -43,7 +43,7 @@ jobs:
       - name: Package IPA Archive
         run: |
           mkdir -p Payload
-          APP_BUNDLE=$(find ./build_output/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
+          APP_BUNDLE=$(find ./build_output/Build/Products/Release-iphoneos -maxdepth 1 -name "${{ env.APP_NAME }}.app" | head -n 1)
           cp -r "$APP_BUNDLE" Payload/
           zip -r -9 "${{ env.APP_NAME }}.ipa" Payload
           rm -rf Payload
@@ -51,7 +51,7 @@ jobs:
       - name: Extract Final Metadata
         id: metadata
         run: |
-          APP_BUNDLE=$(find ./build_output/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
+          APP_BUNDLE=$(find ./build_output/Build/Products/Release-iphoneos -maxdepth 1 -name "${{ env.APP_NAME }}.app" | head -n 1)
           VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP_BUNDLE/Info.plist")
           BUILD=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$APP_BUNDLE/Info.plist")
           IPA_SIZE=$(stat -f %z "${{ env.APP_NAME }}.ipa")

@@ -216,15 +216,20 @@ struct QuestionView: View {
     private var explanationArea: some View {
         Group {
             if viewModel.showExplanation, let explanation = viewModel.currentQuestion?.explanation, !explanation.isEmpty {
+                let isCorrect = viewModel.isCorrect == true
+                let tintColor: Color = isCorrect ? .green : .blue
+                let iconName: String = isCorrect ? "checkmark.circle.fill" : "info.circle.fill"
+                let titleText: String = isCorrect ? "Правильно!" : "Обратите внимание"
+
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Image(systemName: viewModel.isCorrect == true ? "checkmark.circle.fill" : "info.circle.fill")
-                            .foregroundColor(viewModel.isCorrect == true ? .green : .blue)
-                        Text(viewModel.isCorrect == true ? "Правильно!" : "Обратите внимание")
+                        Image(systemName: iconName)
+                            .foregroundColor(tintColor)
+                        Text(titleText)
                             .font(.system(.headline, design: .rounded, weight: .bold))
-                            .foregroundColor(viewModel.isCorrect == true ? .green : .blue)
+                            .foregroundColor(tintColor)
                     }
-                    
+
                     Text(explanation)
                         .font(.system(.body, design: .rounded))
                         .foregroundColor(.primary)
@@ -233,11 +238,11 @@ struct QuestionView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
                     RoundedRectangle(cornerRadius: 16)
-                        .fill(viewModel.isCorrect == true ? Color.green.opacity(0.1) : Color.blue.opacity(0.1))
+                        .fill(tintColor.opacity(0.1))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(viewModel.isCorrect == true ? Color.green.opacity(0.3) : Color.blue.opacity(0.3), lineWidth: 1)
+                        .stroke(tintColor.opacity(0.3), lineWidth: 1)
                 )
                 .padding(.horizontal, 16)
                 .transition(.move(edge: .bottom).combined(with: .opacity))

@@ -76,7 +76,7 @@ struct BattleView: View {
     
     private var styleToggleHeader: some View {
         VStack(spacing: 8) {
-            Text("КАК ЭТО РАБОТАЕТ В РАЗНЫХ СИСТЕМАХ:")
+            Text("СРАВНЕНИЕ В РЕАЛЬНОМ ВРЕМЕНИ:")
                 .font(.system(size: 11, weight: .bold, design: .rounded))
                 .foregroundColor(.secondary)
             

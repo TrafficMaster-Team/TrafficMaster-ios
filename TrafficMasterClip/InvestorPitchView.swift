@@ -9,7 +9,7 @@ import SwiftUI
 
 struct InvestorPitchView: View {
     @State private var annualStudents: Double = 60_000
-    private let pricePerStudent: Double = 24.0 // $24 average LTV subscription before GAI
+    private let pricePerStudent: Double = 24.0 // $24 average LTV
     
     private var projectedRevenue: Double {
         annualStudents * pricePerStudent
@@ -17,8 +17,8 @@ struct InvestorPitchView: View {
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
-                // Pitch Header
+            VStack(spacing: 20) {
+                // Pitch Hero
                 pitchHeroCard
                 
                 // Key Traction Metrics Grid
@@ -41,7 +41,7 @@ struct InvestorPitchView: View {
     // MARK: - Hero Card
     
     private var pitchHeroCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("INVESTOR DECK SNAPSHOT")
                     .font(.system(size: 11, weight: .black, design: .rounded))
@@ -56,12 +56,12 @@ struct InvestorPitchView: View {
                     .clipShape(Capsule())
             }
             
-            Text("Переосмысление подготовки к ПДД через когнитивную науку и AI")
+            Text("Когнитивный EdTech для сдачи ПДД с 1-й попытки")
                 .font(.system(.title3, design: .rounded, weight: .bold))
                 .foregroundColor(.primary)
-                .lineSpacing(3)
+                .lineSpacing(2)
             
-            Text("Классические сервисы (ADrive, автошкольные тренажеры) заставляют зазубривать сухие формулировки. TrafficMaster формирует устойчивые нейронные связи через мнемоники и алгоритм SM-2.")
+            Text("Вместо заучивания 400 страниц казуистики — мнемоники, адаптивный SM-2 алгоритм и персональный AI-тьютор.")
                 .font(.system(.subheadline, design: .rounded))
                 .foregroundColor(.secondary)
                 .lineSpacing(2)
@@ -74,14 +74,14 @@ struct InvestorPitchView: View {
     // MARK: - Traction Grid
     
     private var tractionMetricsGrid: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("СРАВНИТЕЛЬНАЯ ЭФФЕКТИВНОСТЬ:")
+        VStack(alignment: .leading, spacing: 12) {
+            Text("МЕТРИКИ ЭФФЕКТИВНОСТИ:")
                 .font(.system(size: 11, weight: .bold, design: .rounded))
                 .foregroundColor(.secondary)
             
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 ForEach(InvestorMetricsRepository.metrics) { metric in
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 6) {
                         HStack {
                             Image(systemName: metric.icon)
                                 .foregroundColor(.accentColor)
@@ -100,7 +100,7 @@ struct InvestorPitchView: View {
                             .font(.system(.title2, design: .rounded, weight: .bold))
                             .foregroundColor(.primary)
                         
-                        Text("vs \(metric.classicValue) в классике")
+                        Text("vs \(metric.classicValue) в тестах")
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
                         
@@ -120,16 +120,16 @@ struct InvestorPitchView: View {
     // MARK: - Unit Economics Simulator
     
     private var unitEconomicsCalculator: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Image(systemName: "chart.line.uptrend.xyaxis")
                     .foregroundColor(.accentColor)
-                Text("СИМУЛЯТОР ВЫРУЧКИ (UNIT ECONOMICS):")
+                Text("UNIT ECONOMICS & ARR:")
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.secondary)
             }
             
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text("Курсантов в год:")
                         .font(.system(.subheadline, design: .rounded))
@@ -146,7 +146,7 @@ struct InvestorPitchView: View {
             Divider()
             
             HStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text("LTV на ученика")
                         .font(.caption2)
                         .foregroundColor(.secondary)
@@ -156,8 +156,8 @@ struct InvestorPitchView: View {
                 
                 Spacer()
                 
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text("Прогноз ARR (Годовая выручка)")
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("Прогноз ARR")
                         .font(.caption2)
                         .foregroundColor(.secondary)
                     Text("$\(Int(projectedRevenue).formatted())")
@@ -165,7 +165,6 @@ struct InvestorPitchView: View {
                         .foregroundColor(.green)
                 }
             }
-            .padding(.top, 4)
         }
         .padding(18)
         .background(Color(uiColor: .secondarySystemBackground))
@@ -175,11 +174,11 @@ struct InvestorPitchView: View {
     // MARK: - Tech Moat Card
     
     private var techMoatCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "shield.lefthalf.filled")
                     .foregroundColor(.purple)
-                Text("ТЕХНОЛОГИЧЕСКИЙ РОВ (MOAT):")
+                Text("ТЕХНОЛОГИЧЕСКИЙ РОВ:")
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.secondary)
             }
@@ -188,21 +187,21 @@ struct InvestorPitchView: View {
                 icon: "bolt.fill",
                 color: .orange,
                 title: "App Clip < 10 МБ",
-                desc: "Мгновенный запуск по QR-коду за 0.8 сек без установки из App Store — идеальная конверсия на оффлайн-презентациях и в автошколах."
+                desc: "Запуск за 0.8с по QR-коду без App Store. Максимальная конверсия вживую."
             )
             
             moatItem(
                 icon: "brain.fill",
                 color: .purple,
-                title: "Кастомный SM-2 Scheduler",
-                desc: "Динамический расчет коэффициента забывания (Ease Factor) под специфику ПДД с автоматической адаптацией под слабые темы."
+                title: "Кастомный SM-2 Движок",
+                desc: "Адаптивный расчет кривой забывания под когнитивный профиль ученика."
             )
             
             moatItem(
-                icon: "bubble.left.and.exclamationmark.bubble.right.fill",
+                icon: "bubble.left.and.sparkles.fill",
                 color: .blue,
-                title: "Контекстный AI-Тьютор",
-                desc: "Интегрированная языковая модель, отвечающая на вопросы 'почему' без галлюцинаций, строго на базе официальных ПДД."
+                title: "AI-Тьютор на базе ПДД",
+                desc: "Мгновенные ответы на вопрос 'почему так' без галлюцинаций."
             )
         }
         .padding(18)
@@ -234,41 +233,38 @@ struct InvestorPitchView: View {
     // MARK: - Founder Contact Card
     
     private var founderContactCard: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(Color.accentColor.opacity(0.15))
-                        .frame(width: 50, height: 50)
-                    Image(systemName: "person.crop.circle.fill")
-                        .font(.system(size: 32))
-                        .foregroundColor(.accentColor)
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Color.accentColor.opacity(0.15))
+                    .frame(width: 48, height: 48)
+                Image(systemName: "person.crop.circle.fill")
+                    .font(.system(size: 30))
+                    .foregroundColor(.accentColor)
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Влад")
+                    .font(.system(.headline, design: .rounded, weight: .bold))
+                Text("Founder • TrafficMaster")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            Button {
+                if let url = URL(string: "https://t.me/vlad_trafficmaster") {
+                    UIApplication.shared.open(url)
                 }
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Влад")
-                        .font(.system(.headline, design: .rounded, weight: .bold))
-                    Text("Основатель TrafficMaster")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                
-                Spacer()
-                
-                Button {
-                    // Open investor pitch link or email
-                    if let url = URL(string: "https://t.me/vlad_trafficmaster") {
-                        UIApplication.shared.open(url)
-                    }
-                } label: {
-                    Text("Связаться")
-                        .font(.system(.caption, design: .rounded, weight: .bold))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(Color.accentColor)
-                        .foregroundColor(.white)
-                        .clipShape(Capsule())
-                }
+            } label: {
+                Text("Связаться")
+                    .font(.system(.caption, design: .rounded, weight: .bold))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(Color.accentColor)
+                    .foregroundColor(.white)
+                    .clipShape(Capsule())
             }
         }
         .padding(16)
