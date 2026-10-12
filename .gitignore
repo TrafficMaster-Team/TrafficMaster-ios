@@ -9,3 +9,5 @@ Gemini.md
 
 # One-off local content migration scripts
 /fix_json.py
+
+.opencode/
